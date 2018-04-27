@@ -1,0 +1,11 @@
+{
+  "name": "juampynr/google-spreadsheet-reader",
+  "description": "Template to read data from a protected Google Spreadsheet",
+  "type": "project",
+  "license": "MIT",
+	"require": {
+    "google/apiclient": "^2.0",
+	  "php": "^7.0",
+    "phpmailer/phpmailer": "~6.0"
+	}
+}

@@ -1,0 +1,24 @@
+<?php
+
+/*use unreal4u\TelegramAPI\Telegram\Types\Inline\Keyboard\Markup;
+$editMessageText                            =     new EditMessageText();
+$editMessageText->chat_id                   =     $queryUserId;
+$editMessageText->message_id                =     $querymsgId;
+$editMessageText->text                      =     "Chọn plan bạn muốn yêu cầu:";
+$arrayInlineKeyBoard    =   array();
+$plansArray             =   checkDetailPlan($queryUserId);
+foreach($plansArray as $key => $value) {
+    $buttonText         =         ucfirst($value['ten_plan']) . ' - Trạng Thái: '. ucfirst($value['tai_dau_tu']) . ' Tái';
+    $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['text']               =   $buttonText;
+    $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['callback_data']      =   'request_'.$value['ten_plan'];
+}
+
+$inlineKeyboard 							= new Markup($arrayInlineKeyBoard);
+$editMessageText->reply_markup              =     $inlineKeyboard;
+
+$messageCorrectionPromise                   =     $tgLog->performApiRequest($editMessageText);*/
+$answerCallbackQuery                        =     new AnswerCallbackQuery();
+$answerCallbackQuery->callback_query_id     =     $queryid;
+$answerCallbackQuery->show_alert            =     true;
+$answerCallbackQuery->text                  =     "aaaaaa";
+$messageCorrectionPromise                   =     $tgLog->performApiRequest($answerCallbackQuery);
