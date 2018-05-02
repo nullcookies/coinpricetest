@@ -19,7 +19,7 @@ $tgLog 			= 	new TgLog(BOT_TOKEN, new HttpClientRequestHandler($loop));
 $sendMessage 	= 	new SendMessage();
 
 $step           =   getData('step-'.A_USER_CHAT_ID);
-$verified       =   setData('verified','no');
+//$verified       =   setData('verified-'.A_USER_CHAT_ID,'no');
 
   switch ($text) {
     case '/start':
@@ -62,17 +62,24 @@ $verified       =   setData('verified','no');
             removeData('username-'.A_USER_CHAT_ID);
             removeData('password-'.A_USER_CHAT_ID);
             setData('step-'.A_USER_CHAT_ID,'0');
-            setData('verified','yes');
+            setData('verified-'.A_USER_CHAT_ID,'yes');
           } else {
             $sendMessage->chat_id = A_USER_CHAT_ID;
             $sendMessage->text = 'Đăng nhập không thành công ! Vui lòng nhấn /start để đăng nhập lại';
             setData('step-'.A_USER_CHAT_ID,'0');
-            setData('verified','no');
+            setData('verified-'.A_USER_CHAT_ID,'no');
           }
           break;
         default:
-            $sendMessage->chat_id = A_USER_CHAT_ID;
-            $sendMessage->text = 'Vui lòng nhấn /start để đăng nhập';
+            $verifiedUser   =   getData('verified-'.A_USER_CHAT_ID);
+            if($verifiedUser == 'no') {
+              $sendMessage->chat_id = A_USER_CHAT_ID;
+              $sendMessage->text = 'Vui lòng nhấn /start để đăng nhập';
+            } else {
+              $sendMessage->chat_id = A_USER_CHAT_ID;
+              $sendMessage->text = 'Yêu cầu của bạn không được xử lý, vui lòng thử lại';
+            }
+            
           break;
       }
       break;

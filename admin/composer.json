@@ -1,0 +1,13 @@
+{
+  "name": "juampynr/google-spreadsheet-reader",
+  "description": "Template to read data from a protected Google Spreadsheet",
+  "type": "project",
+  "license": "MIT",
+	"require": {
+	  "google/apiclient": "^2.0",
+	  "php": ">=5.5",
+      "longman/telegram-bot": "*",
+      "php-telegram-bot/inline-keyboard-pagination": "^1.0.0",
+      "php-telegram-bot/telegram-bot-manager": "*"
+	}
+}
