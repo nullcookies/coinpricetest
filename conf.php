@@ -24,4 +24,6 @@ $nutYeuCau 	=	array(
 		'📋 Xem Danh Sách Plan', // $nutYeuCau[0]
 		'💰 Yêu Cầu Rút Coin', 	// $nutYeuCau[1]
 		'📤 Yêu Cầu Cuối Tháng', // $nutYeuCau[2]
+		'🔁 Chuyển Coin', // $nutYeuCau[3]
+		'⚙️ Chỉnh Sửa Thông Tin' // $nutYeuCau[4]
 	);

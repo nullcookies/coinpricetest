@@ -44,6 +44,12 @@ $step           =   getData('step-'.A_USER_CHAT_ID);
     case $nutYeuCau[2]:
       require_once __DIR__.'/types/yeu_cau_thang.php';
       break;
+    case $nutYeuCau[3]:
+      require_once __DIR__.'/types/chuyen_coin.php';
+      break;
+    case $nutYeuCau[4]:
+      require_once __DIR__.'/types/sua_thong_tin.php';
+      break;
     default:
       switch ($step) {
         case '1':

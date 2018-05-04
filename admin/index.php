@@ -1,5 +1,6 @@
 <?php
-    require_once __DIR__ . "/functions.php";
+    require_once __DIR__ . "/get_google_data.php";
+    @require_once __DIR__ . "/functions/get_database_data.php";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -22,10 +23,58 @@
   </head>
   <body>
     <div class="container">
+      <div class="page-header">
+        <h1>Bảng theo dõi danh sách các plan</h1>
+        <p class="lead">Quản lý users, các plans và thông tin</p>
+      </div>
       <div class="row">
-         <div class="col-md-12">
-           <p><a href="<?php echo siteUrl(); ?>/admin/index.php?import_data=yes" class="btn btn-primary">Get Data from Google Doc</a></p>
-         </div>
+  		<div class="database_tables">
+	      	<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+	      	  <?php
+	      	  	$arrayTables 	=	showTables();
+	      	  	foreach($arrayTables as $table):
+	      	  ?>
+			  <div class="panel panel-default">
+			    <div class="panel-heading" role="tab" id="heading_<?php echo $table['Tables_in_teamta_bot']; ?>">
+			      <h4 class="panel-title">
+			        <a class="btn btn-info" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapse_<?php echo $table['Tables_in_teamta_bot']; ?>" aria-expanded="true" aria-controls="collapse_<?php echo $table['Tables_in_teamta_bot']; ?>">
+			          Bảng <?php echo strtoupper($table['Tables_in_teamta_bot']); ?>
+			        </a>
+			      </h4>
+			    </div>
+			    <div id="collapse_<?php echo $table['Tables_in_teamta_bot']; ?>" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="heading_<?php echo $table['Tables_in_teamta_bot']; ?>">
+			      <div class="panel-body">
+			        <?php 
+			        	switch ($table['Tables_in_teamta_bot']) {
+			        		case 'chialai':
+			        			@require_once __DIR__ . "/db_tables/chialai.php";
+			        			break;
+			        		case 'users':
+			        			@require_once __DIR__ . "/db_tables/users.php";
+			        			break;
+			        		case 'plans':
+			        			@require_once __DIR__ . "/db_tables/plans.php";
+			        			break;
+			        		case 'chitietplan':
+			        			@require_once __DIR__ . "/db_tables/chitietplan.php";
+			        			break;
+			        	}
+			        ?>
+			      </div><!-- panel-body -->
+			    </div>
+			  </div><!-- panel-default -->
+			<?php endforeach; ?>
+			</div>
+	      </div><!-- database_tables -->
+	  </div><!-- row -->
+      <div class="row">
+      	<div class="col-md-6">
+     		<p class="text-center"><a href="<?php echo siteUrl(); ?>/admin/index.php?import_data=yes" class="btn btn-primary">Lấy data từ Google Doc</a></p>
+        </div>
+  		<div class="col-md-6">
+			<p class="text-center"><a href="#" class="btn btn-success">Cập nhật data từ Database -> Google Doc</a></p>
+  		</div>
+           
       </div>
     </div>
 
@@ -51,5 +100,10 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+    	jQuery(document).ready(function($) {
+    		$('#accordion').collapse('hide');
+    	});
+    </script>
   </body>
 </html>
