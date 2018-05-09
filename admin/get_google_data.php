@@ -153,6 +153,7 @@ function getGoogleDocChiTiet($tenPlan) {
     array_pop($arrayData);
     $arrayData 		=	array_values($arrayData);
     $arrayResult 	=	array();
+    
     foreach($arrayData as $key => $value) {
     	if(empty($value['0'])) {
     		$arrayResult[$key]['telegram_id'] 	=	0;
@@ -164,11 +165,13 @@ function getGoogleDocChiTiet($tenPlan) {
     	$arrayResult[$key]['so_dau_tu'] 		=	$value['4'];
 
     	$arrayResult[$key]['co_phan'] 			=	rtrim($value['5'], "%");
-    	$arrayResult[$key]['so_vi'] 			=	$value['7'];
+    	if(isset($value['7'])) {
+            $arrayResult[$key]['so_vi']             =   $value['7'];
+        } else {
+            $arrayResult[$key]['so_vi']             =   '';
+        }
     }
-    /*echo '<pre>';
-	print_r($arrayResult);
-	echo '</pre>';*/
+    
 
     return $arrayResult;
 }
@@ -265,22 +268,26 @@ function getProfitDetail($tenPlan) {
     }
     $arrayData 		=	array_values($arrayData);
     array_pop($arrayData);
+    
     $arrayResult 	=	array();
     foreach ($arrayData as $key => $value) {
     	/*$arrayResult[$key]['username'] 	=	$value['1'];
     	$arrayResult[$key]['username'] 	=	$value['1'];*/
-    	if($key == 0) {
-    		continue;
-    	} else {
-    		$arrayResult[$key]['username'] 	=	$value['1'];
-    		foreach($arrayData[0] as $k => $v) {
-    			if($k < 8) {
-    				continue;
-    			} else {
-    				$arrayResult[$key][$v] 	=	$value[$k];
-    			}
-    		}
-    	}
+    	if(count($value) < 9) {
+            $value['8']     =   '';
+        }
+        if($key == 0) {
+                continue;
+            } else {
+                $arrayResult[$key]['username']  =   $value['1'];
+                foreach($arrayData[0] as $k => $v) {
+                    if($k < 8) {
+                        continue;
+                    } else {
+                        $arrayResult[$key][$v]  =   $value[$k];
+                    }
+                }
+            }
     }
     
     return $arrayResult;
@@ -418,31 +425,26 @@ function updateTableChiaLai() {
 		foreach($arrayProfit as $k => $v) {
 			$username 	=	array_shift($v);
 			foreach($v as $date => $profit) {
-				/*$time = date_create_from_format('d/m/Y', $date);
 
-				$newDate = date_format($time, 'Y-m-d');*/
+				$queryDetail = $db->query("SELECT * FROM `chialai` WHERE `username` = ':username_value' AND `ten_plan` = ':ten_plan_value' AND `ngay_chia_lai` = ':ngay_chia_lai_value' AND `lai_coin` = ':lai_coin'",['table'=>'chialai','username_value'=>$username, 'ten_plan_value' => $plan, 'ngay_chia_lai_value' => $date, 'lai_coin'=>$profit])->fetch();
+				
 
-				$date = str_replace('/', '-', $date);
-				$newDate = date('Y-m-d', strtotime($date));
-
-				$queryDetail = $db->query("SELECT * FROM :table WHERE :username = ':username_value' AND :ten_plan = ':ten_plan_value' AND :ngay_chia_lai = ':ngay_chia_lai_value'",['table'=>'chialai','username'=>'username','username_value'=>$username, 'ten_plan'=>'ten_plan', 'ten_plan_value' => $plan, 'ngay_chia_lai' => 'ngay_chia_lai', 'ngay_chia_lai_value' => $newDate])->fetch();
-				if($queryDetail == true) {
-					
-					$result = $db->update('chialai',['ngay_chia_lai'=>$newDate, 'lai_coin'=>$profit],' username = "'.$username.'" AND ten_plan = "'.$plan.'"');
-					
-				} else {
-					$result = $db->insert('chialai',['username'=>$username, 'ten_plan'=>$plan, 'ngay_chia_lai'=>$newDate, 'lai_coin'=>$profit]);
-				}
-				//echo $username . ' - ' . $date . ' - '. $profit . '<br />';
+                if(count($queryDetail) > 0) {
+                    $result = $db->update('chialai',['lai_coin'=>$profit],' username = "'.$username.'" AND ten_plan = "'.$plan.'" AND ngay_chia_lai = "'.$date.'"');
+                } else {
+                    $result = $db->insert('chialai',['username'=>$username, 'ten_plan'=>$plan, 'ngay_chia_lai'=>$date, 'lai_coin'=>$profit]);
+                }
 			}
 		}
 	}
-
+    
 	if($result == true) {
 		return "Cập nhật bảng chia lãi thành công";
 	} else {
 		return "Cập nhật bảng chia lãi không thành công";
 	}
+
+    /*return $queryDetail;*/
 	
 	$db->close();
 }

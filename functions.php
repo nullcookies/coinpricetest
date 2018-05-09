@@ -25,6 +25,23 @@ function getCurrentPlans() {
   return $arrayPlans;
 }
 
+function getCurrentUser($telegramId) {
+
+  $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $arrayData = $db->query("SELECT `username` FROM :table WHERE `telegram_id` = ':telegram_id'",['table'=>'users','telegram_id'=> $telegramId])->fetch();
+
+  return $arrayData['username'];
+  $db->close();
+
+}
+
+function getUserWallet($telegramId, $tenPlan) {
+  $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $arrayData = $db->query("SELECT `so_vi` FROM `chitietplan` WHERE `username` = (SELECT `username` FROM `users` WHERE `telegram_id` = ':telegram_id') AND `ten_plan` = ':ten_plan'",['table'=>'chitietplan','telegram_id'=> $telegramId, 'ten_plan'=>$tenPlan])->fetch();
+  return $arrayData['so_vi'];
+  $db->close();
+}
+
 // Kiem Tra User và Password để login
 function checkLogin($username, $password) {
 
@@ -56,7 +73,7 @@ function insertTelegramId($userName, $telegramId) {
 // Kiểm tra thông tin Plan của User
 function checkDetailPlan($telegramId, $request = null) {
   $db         =   new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
-  $result_plans = $db->query("SELECT :tenplan_chitiet, :tai_dau_tu, :yeu_cau_khac FROM :table_chitiet WHERE (SELECT :username_users FROM :table_users WHERE :telegram_users = ':telegramId') = :username_chitiet",['table_chitiet'=>'chitietplan', 'table_users'=>'users', 'username_users' => 'username', 'telegram_users' => 'telegram_id', 'telegramId' => $telegramId, 'username_chitiet' => 'username', 'tenplan_chitiet' => 'ten_plan', 'tai_dau_tu' => 'tai_dau_tu', 'yeu_cau_khac' => 'yeu_cau_khac'])->fetch_all();
+  $result_plans = $db->query("SELECT :tenplan_chitiet, :tai_dau_tu, :yeu_cau_khac FROM :table_chitiet WHERE (SELECT :username_users FROM :table_users WHERE :telegram_users = ':telegramId') = :username_chitiet AND `so_dao_pos` NOT LIKE '0.%'",['table_chitiet'=>'chitietplan', 'table_users'=>'users', 'username_users' => 'username', 'telegram_users' => 'telegram_id', 'telegramId' => $telegramId, 'username_chitiet' => 'username', 'tenplan_chitiet' => 'ten_plan', 'tai_dau_tu' => 'tai_dau_tu', 'yeu_cau_khac' => 'yeu_cau_khac'])->fetch_all();
   
   return $result_plans;
   $db->close();
@@ -69,20 +86,42 @@ function answerPlanDetail($telegramId, $queryData) {
   $result           =       '';
   $getPlans         =       explode("_", $queryData);
   $currentPlan      =       $getPlans[1];
+  $currentUser      =       getCurrentUser($telegramId);
 
   //SELECT c.`ten_plan`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, c.`so_vi`, u.`ho_ten`, l.`ngay_chia_lai`, l.`lai_coin` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` INNER JOIN `chialai` AS l ON c.`ten_plan` = l.`ten_plan` AND c.`username` = l.`username` WHERE u.`telegram_id` = '338838500' AND c.`ten_plan` = 'liza' ORDER BY l.`ngay_chia_lai` DESC
 
   //SELECT c.`ten_plan`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, c.`so_vi`, u.`ho_ten`, l.`ngay_chia_lai`, l.`lai_coin` FROM `chitietplan` AS c LEFT JOIN `users` AS u ON c.`username` = u.`username` LEFT JOIN `chialai` AS l ON c.`username` = l.`username` WHERE u.`telegram_id` = ':telegram_id' AND c.`ten_plan` = ':current_plan' GROUP BY c.`ten_plan` ORDER BY l.`ngay_chia_lai` DESC
    
-  $arrayResult = $db->query("SELECT c.`ten_plan`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, c.`so_vi`, u.`ho_ten`, l.`ngay_chia_lai`, l.`lai_coin` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` INNER JOIN `chialai` AS l ON c.`ten_plan` = l.`ten_plan` AND c.`username` = l.`username` WHERE u.`telegram_id` = ':telegram_id' AND c.`ten_plan` = ':current_plan' ORDER BY l.`ngay_chia_lai` DESC", ['telegram_id' => $telegramId, 'current_plan' => $currentPlan])->fetch();
+  /*$arrayResult = $db->query("SELECT c.`ten_plan`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, c.`so_vi`, u.`ho_ten`, l.`ngay_chia_lai`, l.`lai_coin` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` INNER JOIN `chialai` AS l ON c.`ten_plan` = l.`ten_plan` AND c.`username` = l.`username` WHERE u.`telegram_id` = ':telegram_id' AND c.`ten_plan` = ':current_plan' ORDER BY l.`ngay_chia_lai` DESC LIMIT 1", ['telegram_id' => $telegramId, 'current_plan' => $currentPlan])->fetch();*/
 
-  $date = new DateTime($arrayResult['ngay_chia_lai']);
+  /*$arrayResult  =   $db->query("SELECT c.`ten_plan`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, c.`so_vi`, u.`ho_ten`, l.`ngay_chia_lai`, l.`lai_coin` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` INNER JOIN `chialai` AS l ON c.`ten_plan` = l.`ten_plan` AND c.`username` = l.`username` WHERE c.`username` = ':username' AND c.`ten_plan` = ':current_plan' ORDER BY l.`ngay_chia_lai` DESC LIMIT 1", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();*/
 
-  $arrayPlanCoins   = $db->query("SELECT `tong_coin` FROM `plans` WHERE `ten_plan` = ':current_plan'", ['ten_plan' => 'ten_plan', 'current_plan' => $currentPlan])->fetch();
+  $arrayResult  =   $db->query("SELECT * FROM `chitietplan` WHERE `username` = ':username' AND `ten_plan` = ':current_plan'", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();
 
-  $result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: ".$arrayPlanCoins['tong_coin']."\nTên Đăng Ký: ".$arrayResult['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']."\nCổ Phần: ".$arrayResult['co_phan']."%\nSố Ví: ".$arrayResult['so_vi']."\nLãi mới nhất ngày ".$date->format('d/m/Y').": ".$arrayResult['lai_coin'];
+  /*$date = new DateTime($arrayResult['ngay_chia_lai']);
+
+  $ngaychialai 	=	$date->format('d/m/Y');*/
+
+  $arrayPlanCoins   = $db->query("SELECT `tong_coin`, `ky_hieu_coin` FROM `plans` WHERE `ten_plan` = ':current_plan'", ['ten_plan' => 'ten_plan', 'current_plan' => $currentPlan])->fetch();
+
+  $arrayUser          = $db->query("SELECT `ho_ten` FROM `users` WHERE `username` = ':username'", ['username' => $currentUser])->fetch();
+
+  $arrayChiaLai        = $db->query("SELECT * FROM `chialai` WHERE `username` = ':username' AND `ten_plan` = ':current_plan' ORDER BY `ngay_chia_lai` DESC LIMIT 1", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();
+
+
+
+
+  $result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: ".$arrayPlanCoins['tong_coin']." ".$arrayPlanCoins['ky_hieu_coin']."\nTên Đăng Ký: ".$arrayUser['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']." ".$arrayPlanCoins['ky_hieu_coin']."\nCổ Phần: ".$arrayResult['co_phan']."%\nLãi mới nhất ngày ".$arrayChiaLai['ngay_chia_lai'].": ".$arrayChiaLai['lai_coin'];
+
+  //$result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: \nTên Đăng Ký: ".$arrayResult['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']."\nCổ Phần: ".$arrayResult['co_phan']."%\nSố Ví: ".$arrayResult['so_vi']."\nLãi mới nhất ngày ". $arrayResult['ngay_chia_lai'] ." : ";
+
+  //$result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: ".$arrayPlanCoins['tong_coin']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']."\nCổ Phần: ".$arrayResult['co_phan']."%\nSố Ví: ".$arrayResult['so_vi'];
 
   return $result;
+  //return implode("-", $result);
+  /*echo '<pre>';
+  print_r($arrayChiaLai);
+  echo '</pre>';*/
   $db->close();
   
 }

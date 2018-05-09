@@ -1,5 +1,7 @@
 <?php
-    require_once __DIR__ . "/get_google_data.php";
+#!/usr/local/bin/php
+    include __DIR__.'/database/config.inc.php'; // Database Config
+    include __DIR__.'/database/Database.php'; // Class Database
     @require_once __DIR__ . "/functions/get_database_data.php";
 ?>
 <!DOCTYPE html>
@@ -67,34 +69,7 @@
 			</div>
 	      </div><!-- database_tables -->
 	  </div><!-- row -->
-      <div class="row">
-      	<div class="col-md-6">
-     		<p class="text-center"><a href="<?php echo siteUrl(); ?>/admin/index.php?import_data=yes" class="btn btn-primary">Lấy data từ Google Doc</a></p>
-        </div>
-  		<div class="col-md-6">
-			<p class="text-center"><a href="#" class="btn btn-success">Cập nhật data từ Database -> Google Doc</a></p>
-  		</div>
-           
-      </div>
     </div>
-
-    <?php
-      if(isset($_GET['import_data'])) {
-        //echo '<p>'.updateTableUser().'</p>';
-        /*getGoogleDocPlans();
-        getGoogleDocChiTiet('buzz');*/
-       	//('buzz');
-       	//getProfitDetail('liza');
-
-       	//getPlanTotalCoin('opc');
-
-        echo '<p>'.updateTableUser().'</p>';
-        echo '<p>'.updateTablePlans().'</p>';
-        echo '<p>'.updateTableChiTiet().'</p>';
-        echo '<p>'.updateTableChiaLai().'</p>';
-        
-      }
-    ?>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>

@@ -1,6 +1,4 @@
 <?php
-include __DIR__.'/database/config.inc.php'; // Database Config
-include __DIR__.'/database/Database.php'; // Class Database
 
 function showTables() {
 	$arrayResult 	  =		  array();

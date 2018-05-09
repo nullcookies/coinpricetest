@@ -169,6 +169,8 @@ public function __construct($server=null, $user=null, $pass=null, $database=null
         return $this;
     }   //query
 
+     
+
 
     /**
      * fetches and returns results one line at a time

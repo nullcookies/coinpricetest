@@ -12,7 +12,11 @@ $row = null;
 $arrayInlineKeyBoard    =   array();
 $plansArray             =   checkDetailPlan(A_USER_CHAT_ID);
 foreach($plansArray as $key => $value) {
-    $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['text']               =   strtoupper($value['ten_plan']);
+    $userWallet     =   getUserWallet(A_USER_CHAT_ID, $value['ten_plan']);
+    if(empty($userWallet)) {
+        $userWallet     =   "Chưa đăng ký";
+    }
+    $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['text']               =   strtoupper($value['ten_plan'])." - Số ví: ".$userWallet;
     $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['callback_data']      =   'print_'.$value['ten_plan'];
 }
 
@@ -43,5 +47,5 @@ $inlineKeyboardButton->callback_data = 'k=0';
 $inlineKeyboard->inline_keyboard[][] = $inlineKeyboardButton;
 */
 $sendMessage->disable_web_page_preview = true;
-$sendMessage->parse_mode = 'Markdown';
+$sendMessage->parse_mode = 'HTML';
 $sendMessage->reply_markup = $inlineKeyboard;
