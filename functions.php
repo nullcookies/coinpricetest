@@ -35,10 +35,10 @@ function getCurrentUser($telegramId) {
 
 }
 
-function getUserWallet($telegramId, $tenPlan) {
+function getTotalCoins($tenPlan) {
   $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
-  $arrayData = $db->query("SELECT `so_vi` FROM `chitietplan` WHERE `username` = (SELECT `username` FROM `users` WHERE `telegram_id` = ':telegram_id') AND `ten_plan` = ':ten_plan'",['table'=>'chitietplan','telegram_id'=> $telegramId, 'ten_plan'=>$tenPlan])->fetch();
-  return $arrayData['so_vi'];
+  $arrayData = $db->query("SELECT `tong_coin`, `ky_hieu_coin` FROM `plans` WHERE `ten_plan` = ':ten_plan'",[ 'ten_plan'=>$tenPlan])->fetch();
+  return $arrayData;
   $db->close();
 }
 
@@ -109,9 +109,9 @@ function answerPlanDetail($telegramId, $queryData) {
   $arrayChiaLai        = $db->query("SELECT * FROM `chialai` WHERE `username` = ':username' AND `ten_plan` = ':current_plan' ORDER BY `ngay_chia_lai` DESC LIMIT 1", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();
 
 
+  	$result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTên Đăng Ký: ".$arrayUser['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']." ".$arrayPlanCoins['ky_hieu_coin']."\nCổ Phần: ".$arrayResult['co_phan']."%\nLãi mới nhất ngày ".$arrayChiaLai['ngay_chia_lai'].": ".$arrayChiaLai['lai_coin'] . ' '.$arrayPlanCoins['ky_hieu_coin'];
 
-
-  $result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: ".$arrayPlanCoins['tong_coin']." ".$arrayPlanCoins['ky_hieu_coin']."\nTên Đăng Ký: ".$arrayUser['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']." ".$arrayPlanCoins['ky_hieu_coin']."\nCổ Phần: ".$arrayResult['co_phan']."%\nLãi mới nhất ngày ".$arrayChiaLai['ngay_chia_lai'].": ".$arrayChiaLai['lai_coin'];
+  /*$result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: ".$arrayPlanCoins['tong_coin']." ".$arrayPlanCoins['ky_hieu_coin']."\nTên Đăng Ký: ".$arrayUser['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']." ".$arrayPlanCoins['ky_hieu_coin']."\nCổ Phần: ".$arrayResult['co_phan']."%\nLãi mới nhất ngày ".$arrayChiaLai['ngay_chia_lai'].": ".$arrayChiaLai['lai_coin'];*/
 
   //$result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: \nTên Đăng Ký: ".$arrayResult['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']."\nCổ Phần: ".$arrayResult['co_phan']."%\nSố Ví: ".$arrayResult['so_vi']."\nLãi mới nhất ngày ". $arrayResult['ngay_chia_lai'] ." : ";
 

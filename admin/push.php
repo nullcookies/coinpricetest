@@ -37,8 +37,14 @@
       </div>
     </div><!-- container -->
     <?php
-    	//getDbUser();
-    	updateRequest();
+    	/*getDataChiTiet('buzz');
+    	getGooglePlanData('buzz');*/
+    	callUpdatePlans('hold');
+    	//getDataChiTiet('buzz');
+    	/*$arrayPlans 	=	getDbPlans();
+    	foreach($arrayPlans as $key => $value) {
+    		echo '<p class="text-center"><a href="" class="btn btn-info">Update Bảng '.strtoupper($value['ten_plan']).'</a></p>';
+    	}*/
     ?>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->

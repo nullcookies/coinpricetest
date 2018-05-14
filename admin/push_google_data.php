@@ -62,14 +62,10 @@ function getDbUser() {
     $arrayPlan  =   getDbPlans();
     for($i = 0; $i < count($arrayPlan); $i++) {
         foreach($queryUser as $key => $value) {
-            if($arrayPlan[$i]['ten_plan'] == 'bullcoin') {
+            if(array_key_exists($arrayPlan[$i]['ten_plan'], $value)) {
                 continue;
             } else {
-                if(array_key_exists($arrayPlan[$i]['ten_plan'], $value)) {
-                    continue;
-                } else {
-                    $queryUser[$key][$arrayPlan[$i]['ten_plan']]   =   '';
-                }
+                $queryUser[$key][$arrayPlan[$i]['ten_plan']]   =   '';
             }
             
         }
@@ -82,17 +78,14 @@ function getDbUser() {
 function getDbPlans() {
     $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
     $arrayPlans     =   array();
-    $queryPlan = $db->query("SELECT `ten_plan` FROM :table",['table'=>'plans'])->fetch_all();
+    $queryPlan = $db->query("SELECT `ten_plan` FROM :table WHERE `ten_plan` != 'bullcoin'",['table'=>'plans'])->fetch_all();
 
-    /*echo '<pre>';
-    print_r($queryPlan);
-    echo '<pre>';*/
     return $queryPlan;
     $db->close();
 }
 
-//$userId, $tenPlan, $updateText, $updateType
-function updateRequest() {
+//Push Data lên bảng user trong sheet Bang Tinh
+function updateUserSheet() {
 
   require 'vendor/autoload.php';
 
@@ -133,49 +126,161 @@ function updateRequest() {
   array_shift($arrayData);
   
   foreach($arrayUser as $key => $value) {
-      //foreach($arrayData as $k => $v) {
-        /*if(in_array($value['username'], $v)) {*/
-              /*$valueRange->setValues(["values" => $value]);
-              $conf = ["valueInputOption" => "RAW"];
-              $updateRange  =   $spreadsheet_range.'!a'.($key+2);
-              $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);    */        
-          /*} else {
-            continue;
-          }*/
-          
-      //}
       $updateArray  =   array();
       foreach($value as $k => $v) {
         $updateArray["values"][]     =   $v;
       }
-
-
       $valueRange->setValues($updateArray);
       $conf = ["valueInputOption" => "RAW"];
       $updateRange  =   $spreadsheet_range.'!a'.($key+2);
       $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
-      /*$valueRange->setValues(["values" => ['aaaa']]);
-          $conf = ["valueInputOption" => "RAW"];*/
-          /*$updateRange  =   $spreadsheet_range.'!a'.($key+1);
-          $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);*/
       $status   =   true;
     }
-    /*
-    $valueRange->setValues(["values" => [$updateText]]);
-          $conf = ["valueInputOption" => "RAW"];
-          if($updateType == 'rut_tuan') {
-            $updateRange  =$spreadsheet_range.'!a'.($key+1);
-            $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
-            $status   = true;
-            break;
-          } else if($updateType == 'rut_thang') {
-            $updateRange  =$spreadsheet_range.'!n'.($key+1);
-            $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
-            $status   = true;
-            break;
-          }
-    */
+    
     return $status;
+
+}
+
+// Lấy mảng Plan trên Google Sheet
+function getGooglePlanData($tenPlan) {
+  require 'vendor/autoload.php';
+
+  global $sheetDuAn;
+
+  $service_account_file = 'client_services.json';
+
+  $spreadsheet_id = $sheetDuAn;
+
+  $spreadsheet_range = $tenPlan;
+
+  $status   = false;
+
+  putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $service_account_file);
+  $client = new Google_Client();
+  $client->useApplicationDefaultCredentials();
+  $client->addScope(Google_Service_Sheets::SPREADSHEETS);
+  $service = new Google_Service_Sheets($client);
+
+  $result = $service->spreadsheets_values->get($spreadsheet_id, $spreadsheet_range);
+  $valueRange= new Google_Service_Sheets_ValueRange($client);
+  $arrayData    =   $result->getValues();
+  for($i = 0; $i < count($arrayData); $i++) {
+    if($i < 10) {
+        unset($arrayData[$i]);
+    } else {
+        break;
+    }
+  }
+  $arrayData = array_values($arrayData);
+
+  /*echo '<pre>';
+  print_r($arrayData);
+  echo '</pre>';*/
+  return $arrayData;
+
+}
+
+function getDataChiTiet($tenPlan) {
+    $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+    $queryUser = $db->query("SELECT `username` FROM :table WHERE `ten_plan` = ':ten_plan'",['table'=>'chitietplan', 'ten_plan'=>$tenPlan])->fetch_all();
+    foreach($queryUser as $key => $value) {
+        //$queryData[$key] = $db->query("SELECT c.`username`, u.`ho_ten`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, u.`facebook`, c.`so_vi` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` WHERE c.`username` = ':username' AND `ten_plan` = ':ten_plan'",['username'=>$value['username'], 'ten_plan'=>$tenPlan])->fetch();
+        $queryData[$key] = $db->query("SELECT c.`username`, u.`ho_ten`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, u.`facebook`, c.`so_vi` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` WHERE c.`username` = ':username' AND `ten_plan` = ':ten_plan'",['username'=>$value['username'], 'ten_plan'=>$tenPlan])->fetch();
+        
+        
+    }
+    /*echo '<pre>';
+    print_r($queryData);
+    echo '</pre>';*/
+    return $queryData;
+    $db->close();
+}
+
+function updatePlansSheet($tenPlan, $arrayUpdate) {
+    require 'vendor/autoload.php';
+
+    global $sheetDuAn;
+
+    $service_account_file = 'client_services.json';
+
+    $spreadsheet_id = $sheetDuAn;
+
+    $spreadsheet_range = $tenPlan;
+
+    $status   = false;
+
+    putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $service_account_file);
+    $client = new Google_Client();
+    $client->useApplicationDefaultCredentials();
+    $client->addScope(Google_Service_Sheets::SPREADSHEETS);
+    $service = new Google_Service_Sheets($client);
+
+    $valueRange= new Google_Service_Sheets_ValueRange($client);
+
+    $arrayGooglePlan    =   getGooglePlanData($tenPlan);
+
+    
+
+    foreach($arrayUpdate as $key => $value) {
+      foreach($arrayGooglePlan as $a => $b) {
+        if(in_array($value['username'], $b)) {
+            $updateArray  =   array();
+          foreach($value as $k => $v) {
+            if($k == 'username' || $k == 'ho_ten' || $k == 'so_dao_pos' || $k == 'so_dau_tu') {
+				if($k == 'so_dao_pos' || $k == 'so_dau_tu') {
+                	$v  =   doubleval($v);
+            	}
+                $updateArray["values"][]     =   $v;
+            } else {
+            	continue;
+            }
+            
+          }
+          $valueRange->setValues($updateArray);
+          $conf = ["valueInputOption" => "RAW"];
+          $updateRange  =   $spreadsheet_range.'!b'.($a+11).':e'.($a+11);
+          $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          $status   =   true;
+        } else {
+            continue;
+        }
+      }
+    }
+
+    foreach($arrayUpdate as $key => $value) {
+      foreach($arrayGooglePlan as $a => $b) {
+        if(in_array($value['username'], $b)) {
+            $updateArray  =   array();
+          foreach($value as $k => $v) {
+            if($k == 'facebook' || $k == 'so_vi') {
+                $updateArray["values"][]     =   $v;
+            } else {
+            	continue;
+            }
+            
+          }
+          $valueRange->setValues($updateArray);
+          $conf = ["valueInputOption" => "RAW"];
+          $updateRange  =   $spreadsheet_range.'!g'.($a+11).':h'.($a+11);
+          $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          $status   =   true;
+        } else {
+            continue;
+        }
+      }
+    }
+
+    return $status;
+}
+
+function callUpdatePlans($tenPlan) {
+    //$arrayPlans  =   getDbPlans();
+    /*foreach($arrayPlans as $key => $value) {
+        $arrayCurrentPlan   =   getDataChiTiet($value['ten_plan']);
+        updatePlansSheet($value['ten_plan'], $arrayCurrentPlan);
+    }*/
+    $arrayCurrentPlan   =   getDataChiTiet($tenPlan);
+    updatePlansSheet($tenPlan, $arrayCurrentPlan);
 
 }
 ?>

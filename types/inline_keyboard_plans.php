@@ -12,11 +12,8 @@ $row = null;
 $arrayInlineKeyBoard    =   array();
 $plansArray             =   checkDetailPlan(A_USER_CHAT_ID);
 foreach($plansArray as $key => $value) {
-    $userWallet     =   getUserWallet(A_USER_CHAT_ID, $value['ten_plan']);
-    if(empty($userWallet)) {
-        $userWallet     =   "Chưa đăng ký";
-    }
-    $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['text']               =   strtoupper($value['ten_plan'])." - Số ví: ".$userWallet;
+    $arrayTotalCoin         =       getTotalCoins($value['ten_plan']);
+    $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['text']               =   strtoupper($value['ten_plan']) . ' - Tổng Coin: '.$arrayTotalCoin['tong_coin'] . ' ' . $arrayTotalCoin['ky_hieu_coin'];
     $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['callback_data']      =   'print_'.$value['ten_plan'];
 }
 
