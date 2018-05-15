@@ -27,3 +27,12 @@ $nutYeuCau 	=	array(
 		'🔁 Chuyển Coin', // $nutYeuCau[3]
 		'⚙️ Chỉnh Sửa Thông Tin' // $nutYeuCau[4]
 	);
+
+$nutChinhSua 	=	array(
+		'📥 Sửa Số Ví', // $nutChinhSua[0]
+		'📧 Sửa Email', // $nutChinhSua[1]
+		'🛠 Sửa Họ Tên', // $nutChinhSua[2]
+		'🛠 Sửa Facebook', // $nutChinhSua[3]
+		'⚙️ Xem Thông Tin', // $nutChinhSua[4]
+		'🔙 Quay Lại' // $nutChinhSua[5]
+	);

@@ -18,8 +18,12 @@ $tgLog 			= 	new TgLog(BOT_TOKEN, new HttpClientRequestHandler($loop));
 
 $sendMessage 	= 	new SendMessage();
 
-$step           =   getData('step-'.A_USER_CHAT_ID);
-//$verified       =   setData('verified-'.A_USER_CHAT_ID,'no');
+$step           	      =   getData('step-'.A_USER_CHAT_ID);
+$stepEmail              =   getData('change-email-step-'.A_USER_CHAT_ID);
+$stepFullname           =   getData('change-fullname-step-'.A_USER_CHAT_ID);
+$stepFacebook           =   getData('change-facebook-step-'.A_USER_CHAT_ID);
+$stepWallet             =   getData('change-wallet-step-'.A_USER_CHAT_ID);
+//$verified            =   setData('verified-'.A_USER_CHAT_ID,'no');
 
   switch ($text) {
     case '/start':
@@ -49,6 +53,36 @@ $step           =   getData('step-'.A_USER_CHAT_ID);
       break;
     case $nutYeuCau[4]:
       require_once __DIR__.'/types/sua_thong_tin.php';
+      break;
+    case $nutChinhSua[0]: // Sửa Số Ví
+      //require_once __DIR__.'/types/wallet.php';
+      setData('change-wallet-step-'.A_USER_CHAT_ID,'1');
+      $sendMessage->chat_id = A_USER_CHAT_ID;
+      $sendMessage->text = 'Vui lòng nhập Plan bạn muốn thay đổi số ví';
+      break;
+    case $nutChinhSua[1]: // Sửa Email
+      setData('change-email-step-'.A_USER_CHAT_ID,'1');
+      $sendMessage->chat_id = A_USER_CHAT_ID;
+      $sendMessage->text = 'Vui lòng nhập Email bạn muốn thay đổi:';
+      //require_once __DIR__.'/settings/email.php';
+      
+      break;
+    case $nutChinhSua[2]: // Sửa Họ Tên
+      setData('change-fullname-step-'.A_USER_CHAT_ID,'1');
+      $sendMessage->chat_id = A_USER_CHAT_ID;
+      $sendMessage->text = 'Vui lòng nhập Họ Tên bạn muốn thay đổi:';
+      break;
+    case $nutChinhSua[3]: // Sửa Facebook
+      setData('change-facebook-step-'.A_USER_CHAT_ID,'1');
+      $sendMessage->chat_id = A_USER_CHAT_ID;
+      $sendMessage->text = 'Vui lòng nhập Facebook bạn muốn thay đổi:';
+      break;
+    case $nutChinhSua[4]:
+      $sendMessage->chat_id = A_USER_CHAT_ID;
+      $sendMessage->text = getCurrentUserInfo(A_USER_CHAT_ID);
+      break;
+    case $nutChinhSua[5]: // Quay Lại
+      require_once __DIR__.'/types/init_keyboards.php';
       break;
     default:
       switch ($step) {
@@ -87,7 +121,80 @@ $step           =   getData('step-'.A_USER_CHAT_ID);
             }
             
           break;
-      }
+      } // End Switch Step
+
+      switch ($stepWallet) {
+        case '1':
+          setData('plan-wallet-'.A_USER_CHAT_ID,$text);
+          $sendMessage->chat_id = A_USER_CHAT_ID;
+          $sendMessage->text = 'Vui lòng nhập Số ví bạn muốn thay đổi (lưu ý nếu nhập sai số ví chúng tôi sẽ không chịu trách nhiệm)';
+          setData('change-wallet-step-'.A_USER_CHAT_ID,'2');
+          break;
+        case '2':
+          setData('wallet-'.A_USER_CHAT_ID,$text);
+          $requestPlan    =   getData('plan-wallet-'.A_USER_CHAT_ID);
+          $requestWallet  =   getData('wallet-'.A_USER_CHAT_ID);
+          if(checkUserPlan(A_USER_CHAT_ID, $requestPlan)) {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = insertUserInfo(A_USER_CHAT_ID, $requestWallet, 'so_vi', $requestPlan);
+            removeData('plan-wallet-'.A_USER_CHAT_ID);
+            removeData('wallet-'.A_USER_CHAT_ID);
+            setData('change-wallet-step-'.A_USER_CHAT_ID,'0');
+          } else {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Bạn chưa tham gia Plan '. $requestPlan .' hoặc nhập sai tên Plan, vui lòng nhấn nút Sửa Số Ví để nhập lại';
+            setData('change-wallet-step-'.A_USER_CHAT_ID,'0');
+          }
+          break;
+        default:
+        
+          break;
+      } // End Change Email
+
+      switch ($stepEmail) {
+        case '1':
+          if (filter_var($text, FILTER_VALIDATE_EMAIL)) {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = insertUserInfo(A_USER_CHAT_ID, $text, 'email');
+
+            //removeData('email-'.A_USER_CHAT_ID);
+            setData('change-email-step-'.A_USER_CHAT_ID,'0');
+          } else {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Email bạn nhập không đúng, vui lòng nhấn nút Sửa Email để nhập lại...';
+            //removeData('email-'.A_USER_CHAT_ID);
+            setData('change-email-step-'.A_USER_CHAT_ID,'0');
+          }
+          break;
+        default:
+        
+          break;
+      } // End Change Email
+
+      switch ($stepFullname) {
+        case '1':
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = insertUserInfo(A_USER_CHAT_ID, $text, 'ho_ten');
+            //removeData('email-'.A_USER_CHAT_ID);
+            setData('change-fullname-step-'.A_USER_CHAT_ID,'0');
+          break;
+        default:
+        
+          break;
+      } // End Change Họ Tên
+
+      switch ($stepFacebook) {
+        case '1':
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = insertUserInfo(A_USER_CHAT_ID, $text, 'facebook');
+            //removeData('email-'.A_USER_CHAT_ID);
+            setData('change-facebook-step-'.A_USER_CHAT_ID,'0');
+          break;
+        default:
+        
+          break;
+      } // End Change Facebook
+
       break;
   }
 
@@ -204,8 +311,8 @@ $getQueryType       =   $arrayQueryData[0];
           $editMessageText->chat_id                   =     $queryUserId;
           $editMessageText->message_id                =     $querymsgId;
           $editMessageText->text                      =     "Chọn plan bạn muốn yêu cầu:";
-          $arrayInlineKeyBoard    					  =   array();
-          $plansArray             					  =   checkDetailPlan($queryUserId);
+          $arrayInlineKeyBoard    					  =   	array();
+          $plansArray             					  =   	checkDetailPlan($queryUserId);
           foreach($plansArray as $key => $value) {
               $buttonText         					  =         ucfirst($value['ten_plan']) . ' - Trạng Thái: '. ucfirst($value['tai_dau_tu']) . ' Tái';
               $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['text']               =   $buttonText;
@@ -233,7 +340,7 @@ $getQueryType       =   $arrayQueryData[0];
               $arrayInlineKeyBoard['inline_keyboard'][$key][$key]['callback_data']      =   'request-month_'.$value['ten_plan'];
           }
 
-          $inlineKeyboard               			  = 	new Markup($arrayInlineKeyBoard);
+          $inlineKeyboard               			        = 	new Markup($arrayInlineKeyBoard);
           $editMessageText->reply_markup              =     $inlineKeyboard;
 
           $messageCorrectionPromise                   =     $tgLog->performApiRequest($editMessageText);

@@ -42,6 +42,40 @@ function getTotalCoins($tenPlan) {
   $db->close();
 }
 
+// Lấy toàn bộ thông tin của User
+function getCurrentUserInfo($telegramId) {
+  $result       =   '';
+  $arrayResult  =   array();
+  $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $currentUser  =   getCurrentUser($telegramId);
+  $queryInfo    =   $db->query("SELECT u.`ho_ten`, u.`email`, u.`facebook`,c.`ten_plan`, c.`so_vi` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` WHERE u.`username` = ':username' AND c.`so_dao_pos` NOT LIKE '0.00000%'",[ 'username'=>$currentUser])->fetch_all();
+  foreach ($queryInfo as $key => $value) {
+    foreach ($value as $k => $v) {
+      $arrayResult['username']    =   $currentUser;
+      $arrayResult['ho_ten']      =   $value['ho_ten'];
+      $arrayResult['facebook']    =   $value['facebook'];
+      $arrayResult['email']       =   $value['email'];
+      if($k == 'ten_plan' || $k == 'so_vi') {
+        $arrayResult['plan_tham_gia'][$key][$k]    =   $v;
+      }
+    }
+  }
+  /*echo '<pre>';
+  print_r($arrayResult);
+  echo '</pre>';*/
+
+  $result 	=		"Thông tin của bạn:\nUsername: ".$currentUser."\nHọ Tên: ".$arrayResult['ho_ten']."\nFacebook: ".$arrayResult['facebook']."\nEmail: ".$arrayResult['email'];
+  foreach ($arrayResult['plan_tham_gia'] as $key => $value) {
+  	if(empty($value['so_vi'])) {
+  		$value['so_vi'] 	=	'Chưa đăng ký';
+  	}
+  	$result 	.=		"\n-------------\nPlan ".strtoupper($value['ten_plan'])."\nSố Ví: ".$value['so_vi'];
+  }
+  return $result;
+  
+  $db->close();
+}
+
 // Kiem Tra User và Password để login
 function checkLogin($username, $password) {
 
@@ -57,6 +91,18 @@ function checkLogin($username, $password) {
     $db->close();
 }
 
+function checkUserPlan($telegramId, $tenPlan) {
+  $result     =   false;
+  $db         =   new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $currentUser  =   getCurrentUser($telegramId);
+  $arrayData  =   $db->query("SELECT * FROM :table WHERE `username` = ':username' AND `ten_plan` = ':ten_plan'",['table'=>'chitietplan','username'=> $currentUser, 'ten_plan' => $tenPlan])->fetch();
+  if(!empty($arrayData)) {
+    $result   =   true;
+  }
+  return $result;
+  $db->close();
+}
+
 // Thêm telegram_id nếu user mới đăng nhập lần đầu
 function insertTelegramId($userName, $telegramId) {
   $result     =   false;
@@ -68,6 +114,43 @@ function insertTelegramId($userName, $telegramId) {
   }
   return $result;
    $db->close();
+}
+
+function insertUserInfo($telegramId, $infoText, $type, $tenPlan = null) {
+  $result       =   '';
+  $db           =   new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $currentUser  =   getCurrentUser($telegramId);
+  if($type == 'email') {
+    $result = $db->update('users',['email'=> $infoText]," username = '$currentUser'");
+    if($result  ==   true) {
+      $result   =   'Cập nhật Email thành công';
+    }
+  }
+
+  if($type == 'ho_ten') {
+    $result = $db->update('users',['ho_ten'=> $infoText]," username = '$currentUser'");
+    if($result  ==   true) {
+      $result   =   'Cập nhật họ tên thành công';
+    }
+  }
+
+  if($type == 'facebook') {
+    $result = $db->update('users',['facebook'=> $infoText]," username = '$currentUser'");
+    if($result  ==   true) {
+      $result   =   'Cập nhật Facebook thành công';
+    }
+  }
+
+  if($type == 'so_vi') {
+    $tenPlan  =   strtolower($tenPlan);
+    $result = $db->update('chitietplan',['so_vi'=> $infoText]," username = '$currentUser' AND `ten_plan` = '$tenPlan'");
+    if($result  ==   true) {
+      $result   =   'Cập nhật Số Ví của Plan '.strtoupper($tenPlan).' thành công';
+    }
+  }
+
+  return $result;
+  $db->close();
 }
 
 // Kiểm tra thông tin Plan của User
