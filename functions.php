@@ -2,6 +2,8 @@
 // Cac phuong thuc telegram
 include __DIR__.'/database/config.inc.php'; // Database Config
 include __DIR__.'/database/Database.php'; // Class Database
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 function getData($id){
     $cached = apc_fetch($id);
@@ -171,19 +173,7 @@ function answerPlanDetail($telegramId, $queryData) {
   $currentPlan      =       $getPlans[1];
   $currentUser      =       getCurrentUser($telegramId);
 
-  //SELECT c.`ten_plan`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, c.`so_vi`, u.`ho_ten`, l.`ngay_chia_lai`, l.`lai_coin` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` INNER JOIN `chialai` AS l ON c.`ten_plan` = l.`ten_plan` AND c.`username` = l.`username` WHERE u.`telegram_id` = '338838500' AND c.`ten_plan` = 'liza' ORDER BY l.`ngay_chia_lai` DESC
-
-  //SELECT c.`ten_plan`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, c.`so_vi`, u.`ho_ten`, l.`ngay_chia_lai`, l.`lai_coin` FROM `chitietplan` AS c LEFT JOIN `users` AS u ON c.`username` = u.`username` LEFT JOIN `chialai` AS l ON c.`username` = l.`username` WHERE u.`telegram_id` = ':telegram_id' AND c.`ten_plan` = ':current_plan' GROUP BY c.`ten_plan` ORDER BY l.`ngay_chia_lai` DESC
-   
-  /*$arrayResult = $db->query("SELECT c.`ten_plan`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, c.`so_vi`, u.`ho_ten`, l.`ngay_chia_lai`, l.`lai_coin` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` INNER JOIN `chialai` AS l ON c.`ten_plan` = l.`ten_plan` AND c.`username` = l.`username` WHERE u.`telegram_id` = ':telegram_id' AND c.`ten_plan` = ':current_plan' ORDER BY l.`ngay_chia_lai` DESC LIMIT 1", ['telegram_id' => $telegramId, 'current_plan' => $currentPlan])->fetch();*/
-
-  /*$arrayResult  =   $db->query("SELECT c.`ten_plan`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, c.`so_vi`, u.`ho_ten`, l.`ngay_chia_lai`, l.`lai_coin` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` INNER JOIN `chialai` AS l ON c.`ten_plan` = l.`ten_plan` AND c.`username` = l.`username` WHERE c.`username` = ':username' AND c.`ten_plan` = ':current_plan' ORDER BY l.`ngay_chia_lai` DESC LIMIT 1", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();*/
-
   $arrayResult  =   $db->query("SELECT * FROM `chitietplan` WHERE `username` = ':username' AND `ten_plan` = ':current_plan'", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();
-
-  /*$date = new DateTime($arrayResult['ngay_chia_lai']);
-
-  $ngaychialai 	=	$date->format('d/m/Y');*/
 
   $arrayPlanCoins   = $db->query("SELECT `tong_coin`, `ky_hieu_coin` FROM `plans` WHERE `ten_plan` = ':current_plan'", ['ten_plan' => 'ten_plan', 'current_plan' => $currentPlan])->fetch();
 
@@ -194,17 +184,7 @@ function answerPlanDetail($telegramId, $queryData) {
 
   	$result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTên Đăng Ký: ".$arrayUser['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']." ".$arrayPlanCoins['ky_hieu_coin']."\nCổ Phần: ".$arrayResult['co_phan']."%\nLãi mới nhất ngày ".$arrayChiaLai['ngay_chia_lai'].": ".$arrayChiaLai['lai_coin'] . ' '.$arrayPlanCoins['ky_hieu_coin'];
 
-  /*$result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: ".$arrayPlanCoins['tong_coin']." ".$arrayPlanCoins['ky_hieu_coin']."\nTên Đăng Ký: ".$arrayUser['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']." ".$arrayPlanCoins['ky_hieu_coin']."\nCổ Phần: ".$arrayResult['co_phan']."%\nLãi mới nhất ngày ".$arrayChiaLai['ngay_chia_lai'].": ".$arrayChiaLai['lai_coin'];*/
-
-  //$result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: \nTên Đăng Ký: ".$arrayResult['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']."\nCổ Phần: ".$arrayResult['co_phan']."%\nSố Ví: ".$arrayResult['so_vi']."\nLãi mới nhất ngày ". $arrayResult['ngay_chia_lai'] ." : ";
-
-  //$result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTổng Coin của Plan: ".$arrayPlanCoins['tong_coin']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']."\nCổ Phần: ".$arrayResult['co_phan']."%\nSố Ví: ".$arrayResult['so_vi'];
-
   return $result;
-  //return implode("-", $result);
-  /*echo '<pre>';
-  print_r($arrayChiaLai);
-  echo '</pre>';*/
   $db->close();
   
 }
@@ -225,4 +205,137 @@ function updateRequestCoin($telegramId, $tenPlan, $updateText, $typeUpdate) {
   }
   return $result;
   $db->close();
+}
+
+/*
+**
+** Các Function xử lý đăng ký
+**
+*/
+// Kiểm tra user đã tồn tại hay chưa
+function checkUserExisting($userName) {
+  $result   =   false;
+  $db               =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $arrayData        =       $db->findByCol('users','username',$userName);
+  if(!empty($arrayData)) {
+    $result   =   true;
+  }
+  return $result;
+  $db->close();
+}
+
+function checkEmailExisting($email) {
+  $result   =   false;
+  $db               =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $arrayData        =       $db->findByCol('users','email',$email);
+  if(!empty($arrayData)) {
+    $result   =   true;
+  }
+  return $result;
+  $db->close();
+}
+
+//
+function showAllPlans() {
+  $result   =   '';
+  $db               =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $arrayData        =       $db->query("SELECT `ten_plan` FROM :table WHERE `ten_plan` != 'bullcoin'",['table'=>'plans'])->fetch_all();
+
+  foreach ($arrayData as $key => $value) {
+    $result   .=  "- ".strtoupper($value['ten_plan'])."\n";
+  }
+  return $result;
+  $db->close();
+}
+
+function sendRegisterMail($registerUser = null, $registerPassword = null, $registerFullname = null, $registerFacebook = null, $registerEmail = null, $registerPlan = null, $registerWallet = null, $registerOther = null) {
+    $mail = new PHPMailer(true);
+    $result   =   false;
+    $today = date("d/m/Y");
+    try {
+        $mail->SMTPOptions = array(
+        'ssl' => array(
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'allow_self_signed' => true
+            )
+        );
+        $mail->isSMTP();
+        $mail->Host = 'smtp.gmail.com';  //gmail SMTP server
+        $mail->SMTPAuth = true;
+        $mail->Username = 'ta.team.rb@gmail.com';   //username
+        $mail->Password = 'lyhxxnogvslxvfaz';   //password
+        //$mail->Username = 'ngtanthanh90@gmail.com';   //username
+        //$mail->Password = 'dthjhlqsogiadfmi';   //password
+        // dthjhlqsogiadfmi
+        $mail->SMTPSecure = 'ssl';
+        $mail->Port = 465;                    //smtp port
+
+        $mail->setFrom('ta.team.rb@gmail.com', 'Registered From Telegram bot');
+        $mail->addAddress("ta.team.rb@gmail.com");
+
+        /*$mail->addAttachment(__DIR__ . '/attachment1.png');
+        $mail->addAttachment(__DIR__ . '/attachment2.jpg');*/
+
+        $mail->isHTML(true);
+
+        $mail->Subject = "User Register Email - date: $today";
+        $mail->Body    = "Xin chào !<br /> Có user đăng ký từ bot Telegram với thông tin sau:<br />Username: <b>$registerUser</b><br />Password: <b>$registerPassword</b><br />Họ Tên: <b>$registerFullname</b><br />Facebook: <b>$registerFacebook</b><br />Email: <b>$registerEmail</b><br />Plan đăng ký: <b>$registerPlan</b><br />Số ví: <b>$registerWallet</b><br />Yêu cầu khác: <b>$registerOther</b><br />";
+
+        if (!$mail->send()) {
+            echo 'Message could not be sent.';
+            echo 'Mailer Error: ' . $mail->ErrorInfo;
+        } else {
+            $result   =   true;
+        }
+    } catch (Exception $e) {
+        echo 'Message could not be sent.';
+        echo 'Mailer Error: ' . $mail->ErrorInfo;
+    }
+    return $result;
+}
+
+function vn_to_str ($str){
+ 
+  $unicode = array(
+   
+  'a'=>'á|à|ả|ã|ạ|ă|ắ|ặ|ằ|ẳ|ẵ|â|ấ|ầ|ẩ|ẫ|ậ',
+   
+  'd'=>'đ',
+   
+  'e'=>'é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ',
+   
+  'i'=>'í|ì|ỉ|ĩ|ị',
+   
+  'o'=>'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ',
+   
+  'u'=>'ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự',
+   
+  'y'=>'ý|ỳ|ỷ|ỹ|ỵ',
+   
+  'A'=>'Á|À|Ả|Ã|Ạ|Ă|Ắ|Ặ|Ằ|Ẳ|Ẵ|Â|Ấ|Ầ|Ẩ|Ẫ|Ậ',
+   
+  'D'=>'Đ',
+   
+  'E'=>'É|È|Ẻ|Ẽ|Ẹ|Ê|Ế|Ề|Ể|Ễ|Ệ',
+   
+  'I'=>'Í|Ì|Ỉ|Ĩ|Ị',
+   
+  'O'=>'Ó|Ò|Ỏ|Õ|Ọ|Ô|Ố|Ồ|Ổ|Ỗ|Ộ|Ơ|Ớ|Ờ|Ở|Ỡ|Ợ',
+   
+  'U'=>'Ú|Ù|Ủ|Ũ|Ụ|Ư|Ứ|Ừ|Ử|Ữ|Ự',
+   
+  'Y'=>'Ý|Ỳ|Ỷ|Ỹ|Ỵ',
+   
+  );
+ 
+  foreach($unicode as $nonUnicode=>$uni){
+   
+  $str = preg_replace("/($uni)/i", $nonUnicode, $str);
+   
+  }
+  $str = str_replace(' ','_',$str);
+   
+  return $str;
+ 
 }

@@ -14,7 +14,7 @@ class UvDriver extends Driver {
     /** @var resource[] */
     private $events = [];
 
-    /** @var \Amp\Loop\Watcher[]|\Amp\Loop\Watcher[][] */
+    /** @var \Amp\Loop\Watcher[][] */
     private $watchers = [];
 
     /** @var resource[] */
@@ -50,7 +50,9 @@ class UvDriver extends Driver {
             }
 
             foreach ($watchers as $watcher) {
-                if (!($watcher->enabled && $watcher->type & $events)) {
+                // $events is OR'ed with 4 to trigger watcher if no events are indicated (0) or on UV_DISCONNECT (4).
+                // http://docs.libuv.org/en/v1.x/poll.html
+                if (!($watcher->enabled && ($watcher->type & $events || ($events | 4) === 4))) {
                     continue;
                 }
 

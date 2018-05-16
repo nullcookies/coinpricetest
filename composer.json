@@ -10,6 +10,7 @@
       "longman/telegram-bot": "^0.48",
       "longman/ip-tools": "^1.2",
       "php-telegram-bot/telegram-bot-manager": "^1.2",
-      "unreal4u/telegram-api": "~3.3"
+      "unreal4u/telegram-api": "~3.3",
+      "phpmailer/phpmailer": "~6.0"
 	}
 }

@@ -23,21 +23,32 @@ $stepEmail              =   getData('change-email-step-'.A_USER_CHAT_ID);
 $stepFullname           =   getData('change-fullname-step-'.A_USER_CHAT_ID);
 $stepFacebook           =   getData('change-facebook-step-'.A_USER_CHAT_ID);
 $stepWallet             =   getData('change-wallet-step-'.A_USER_CHAT_ID);
+$stepRegister           =   getData('step-register-'.A_USER_CHAT_ID);
 //$verified            =   setData('verified-'.A_USER_CHAT_ID,'no');
 
   switch ($text) {
     case '/start':
-      setData('step-'.A_USER_CHAT_ID,'1');
-      $sendMessage->chat_id = A_USER_CHAT_ID;
-      $sendMessage->text = 'Vui lòng nhập Username của bạn:';
+      setData('step-'.A_USER_CHAT_ID,'0');
+      setData('step-register-'.A_USER_CHAT_ID,'0');
+      require_once __DIR__.'/types/nut_khoi_tao.php';
       break;
     case '/huy':
       setData('step-'.A_USER_CHAT_ID,'0');
       $sendMessage->chat_id = A_USER_CHAT_ID;
       $sendMessage->text = 'Thông tin đã hủy ! Vui lòng nhấn /start để đăng nhập lại';
       break;
-    case '/dangky':
-      
+    case $nutKhoiTao[0]: // Đăng Nhập
+      setData('step-'.A_USER_CHAT_ID,'1');
+      setData('step-register-'.A_USER_CHAT_ID,'0');
+      $sendMessage->chat_id = A_USER_CHAT_ID;
+      $sendMessage->text = 'Vui lòng nhập Username của bạn:';  
+      break;
+    case $nutKhoiTao[1]: // Đăng Ký
+      setData('step-register-'.A_USER_CHAT_ID,'1');
+      setData('step-'.A_USER_CHAT_ID,'0');
+      $sendMessage->chat_id = A_USER_CHAT_ID;
+      $sendMessage->text = 'Vui lòng nhập Username bạn muốn đăng ký:'; 
+      //require_once __DIR__.'/request/register.php';
       break;
     case $nutYeuCau[0]:
       require_once __DIR__.'/types/inline_keyboard_plans.php';
@@ -111,17 +122,171 @@ $stepWallet             =   getData('change-wallet-step-'.A_USER_CHAT_ID);
           }
           break;
         default:
-            $verifiedUser   =   getData('verified-'.A_USER_CHAT_ID);
+            /*$verifiedUser   =   getData('verified-'.A_USER_CHAT_ID);
             if($verifiedUser == 'no') {
               $sendMessage->chat_id = A_USER_CHAT_ID;
               $sendMessage->text = 'Vui lòng nhấn /start để đăng nhập';
             } else {
               $sendMessage->chat_id = A_USER_CHAT_ID;
               $sendMessage->text = 'Yêu cầu của bạn không được xử lý, vui lòng thử lại';
-            }
-            
+            }*/
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Yêu cầu của bạn không được xử lý, vui lòng thử lại';
           break;
-      } // End Switch Step
+      } // End Switch Step Đăng Nhập
+
+      switch ($stepRegister) {
+        case '1':
+          if(is_numeric($text)) {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng chọn Username không phải là số, nhập lại username khác:';
+            setData('step-register-'.A_USER_CHAT_ID,'1');
+          } elseif(checkUserExisting($text) == true) {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Username bạn đăng ký đã tồn tại, vui lòng chọn username khác:';
+            setData('step-register-'.A_USER_CHAT_ID,'1');
+          } else {
+            setData('username-register-'.A_USER_CHAT_ID,$text);
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng nhập Password của bạn:';
+            setData('step-register-'.A_USER_CHAT_ID,'2');
+          }
+          break;
+        case '2':
+          if($text == '') {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng không để trống Password !';
+            setData('step-register-'.A_USER_CHAT_ID,'2');
+          } else {
+            setData('password-register-'.A_USER_CHAT_ID,$text);
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng nhập Họ Tên của bạn:';
+            setData('step-register-'.A_USER_CHAT_ID,'3');
+          }
+          break;
+        case '3':
+          if($text == '') {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng không để trống Họ Tên !';
+            setData('step-register-'.A_USER_CHAT_ID,'3');
+          } else {
+            setData('fullname-register-'.A_USER_CHAT_ID,$text);
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng nhập Facebook của bạn:';
+            setData('step-register-'.A_USER_CHAT_ID,'4');
+          }
+          break;
+        case '4':
+          if($text == '') {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng không để trống Facebook !';
+            setData('step-register-'.A_USER_CHAT_ID,'4');
+          } else {
+            setData('facebook-register-'.A_USER_CHAT_ID,$text);
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng nhập Email của bạn:';
+            setData('step-register-'.A_USER_CHAT_ID,'5');
+          }
+          break;
+        case '5':
+          if(filter_var($text, FILTER_VALIDATE_EMAIL)) {
+            setData('email-register-'.A_USER_CHAT_ID,$text);
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = "Chọn một trong số các plan sau đây bạn muốn tham gia: \n".showAllPlans();
+            setData('step-register-'.A_USER_CHAT_ID,'6');
+          } else {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Email bạn nhập không đúng, vui lòng nhập lại !';
+            setData('step-register-'.A_USER_CHAT_ID,'5');
+          }
+          break;
+        case '6':
+          if($text != '') {
+            setData('plan-register-'.A_USER_CHAT_ID,$text);
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Nhập số ví của Plan: ';
+            setData('step-register-'.A_USER_CHAT_ID,'7');
+          } else {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng không để trống số ví !';
+            setData('step-register-'.A_USER_CHAT_ID,'6');
+          }
+          break;
+        case '7':
+            setData('wallet-register-'.A_USER_CHAT_ID,$text);
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Nhập yêu cầu khác (nếu có):';
+            setData('step-register-'.A_USER_CHAT_ID,'8');
+          break;
+        case '8':
+            setData('other-register-'.A_USER_CHAT_ID,$text);
+            $registerUser         =   vn_to_str(getData('username-register-'.A_USER_CHAT_ID));
+            $registerPassword     =   getData('password-register-'.A_USER_CHAT_ID);
+            $registerFullname     =   getData('fullname-register-'.A_USER_CHAT_ID);
+            $registerFacebook     =   getData('facebook-register-'.A_USER_CHAT_ID);
+            $registerEmail        =   getData('email-register-'.A_USER_CHAT_ID);
+            $registerPlan         =   getData('plan-register-'.A_USER_CHAT_ID);
+            $registerWallet       =   getData('wallet-register-'.A_USER_CHAT_ID);
+            $registerOther        =   getData('other-register-'.A_USER_CHAT_ID);
+            $sendMessage->chat_id =   A_USER_CHAT_ID;
+            $sendMessage->text    =   "Vui lòng xác nhận những thông tin bạn đã đăng ký dưới đây:\nUsername: ".$registerUser."\nPassword: ".$registerPassword."\nHọ Tên: ".strtolower($registerFullname)."\nFacebook: ".$registerFacebook."\nEmail: ".$registerEmail."\nPlan Đăng Ký: ".$registerPlan."\nSố ví: ".$registerWallet."\nYêu Cầu Khác: ".$registerOther."\nVui lòng chọn 'yes' để xác nhận hoặc 'no' để hủy thông tin và nhập lại";
+            setData('step-register-'.A_USER_CHAT_ID,'9');  
+          break;
+        case '9':
+          switch ($text) {
+            case 'yes':
+              $resultText   =   '';
+              $registerUser         =   vn_to_str(getData('username-register-'.A_USER_CHAT_ID));
+              $registerPassword     =   getData('password-register-'.A_USER_CHAT_ID);
+              $registerFullname     =   getData('fullname-register-'.A_USER_CHAT_ID);
+              $registerFacebook     =   getData('facebook-register-'.A_USER_CHAT_ID);
+              $registerEmail        =   getData('email-register-'.A_USER_CHAT_ID);
+              $registerPlan         =   getData('plan-register-'.A_USER_CHAT_ID);
+              $registerWallet       =   getData('wallet-register-'.A_USER_CHAT_ID);
+              $registerOther        =   getData('other-register-'.A_USER_CHAT_ID);
+              $sendMessage->chat_id =   A_USER_CHAT_ID;
+              $result   =   sendRegisterMail(strtolower($registerFullname), $registerPassword, $registerFullname, $registerFacebook, $registerEmail, $registerPlan, $registerWallet, $registerOther);
+              if($result  ==   true) {
+                $resultText   =   'Đăng ký thành công, chúng tôi sẽ liên hệ bạn trong thời gian sớm nhất. Xin cám ơn !';
+              }
+              $sendMessage->text    =   $resultText;
+              setData('step-register-'.A_USER_CHAT_ID,'0');
+              removeData('username-register-'.A_USER_CHAT_ID);
+              removeData('password-register-'.A_USER_CHAT_ID);
+              removeData('fullname-register-'.A_USER_CHAT_ID);
+              removeData('facebook-register-'.A_USER_CHAT_ID);
+              removeData('email-register-'.A_USER_CHAT_ID);
+              removeData('plan-register-'.A_USER_CHAT_ID);
+              removeData('wallet-register-'.A_USER_CHAT_ID);
+              removeData('other-register-'.A_USER_CHAT_ID);
+              break;
+            
+            case 'no':
+              $sendMessage->chat_id =   A_USER_CHAT_ID;
+              $sendMessage->text    =   "Thông tin đã hủy, vui lòng nhấn nút Đăng Ký để nhập lại.";
+              setData('step-register-'.A_USER_CHAT_ID,'0');
+              removeData('username-register-'.A_USER_CHAT_ID);
+              removeData('password-register-'.A_USER_CHAT_ID);
+              removeData('fullname-register-'.A_USER_CHAT_ID);
+              removeData('facebook-register-'.A_USER_CHAT_ID);
+              removeData('email-register-'.A_USER_CHAT_ID);
+              removeData('plan-register-'.A_USER_CHAT_ID);
+              removeData('wallet-register-'.A_USER_CHAT_ID);
+              removeData('other-register-'.A_USER_CHAT_ID);
+              break;
+          }
+          break;
+        default:
+          /*$verifiedUser   =   getData('verified-'.A_USER_CHAT_ID);
+          if($verifiedUser == 'no') {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Vui lòng nhấn /start để đăng nhập';
+          } else {
+            $sendMessage->chat_id = A_USER_CHAT_ID;
+            $sendMessage->text = 'Yêu cầu của bạn không được xử lý, vui lòng thử lại';
+          }*/
+          break;
+      } // End Switch Step Đăng Ký
 
       switch ($stepWallet) {
         case '1':
