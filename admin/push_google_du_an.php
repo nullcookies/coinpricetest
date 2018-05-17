@@ -282,7 +282,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
       }
     }
 
-    // Update Ngay Chia Lai
+    /*// Update Ngay Chia Lai
     foreach($arrayUpdate as $key => $value) {
             $updateArray    =   array();
             $arrayChiaLai   =   getDataChiaLai($value['username'], $tenPlan);
@@ -309,11 +309,11 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
             if(!empty($arrayChiaLai)) {
               foreach($arrayChiaLai as $k => $v) {
                 if($k == 'lai_coin') {
-                  $updateArray["values"][]     =   $v;
+                  $updateArray["values"][]     =   doubleval($v);
                 }
               }
             } else {
-              $updateArray["values"][]     =   '0.00000000';
+              $updateArray["values"][]     =   doubleval('0.00000000');
             }
           
           $valueRange->setValues($updateArray);
@@ -327,7 +327,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
             continue;
         }
       }
-    }
+    }*/
 
     // Insert Thêm User Mới
     $countNewUser   =   0;
@@ -380,7 +380,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
       }
     }
 
-    // Lãi Coin
+    /*// Lãi Coin
     $countNewUser   =   0;
     foreach($arrayUpdate as $key => $value) {
       if(in_array($key, $arrayKeys)) {
@@ -390,11 +390,11 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
         if(!empty($arrayChiaLai)) {
           foreach($arrayChiaLai as $k => $v) {
             if($k == 'lai_coin') {
-              $updateArray["values"][]     =   $v;
+              $updateArray["values"][]     =   doubleval($v);
             }
           }
         } else {
-          $updateArray["values"][]     =   '0.00000000';
+          $updateArray["values"][]     =   doubleval('0.00000000');
         }
         
         $valueRange->setValues($updateArray);
@@ -406,7 +406,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
         unset($updateArray["values"]);
         $status   =   true;
       }
-    }
+    }*/
 
     return $status;
 }
