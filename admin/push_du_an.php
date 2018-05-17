@@ -44,7 +44,6 @@
         </div>
     		<div class="col-md-6">
   			   <?php
-              
               if(isset($_GET['import_data']) && isset($_GET['plan'])) {
                 $trangThai  = callUpdatePlans($_GET['plan']);
                 echo '<p>'.$trangThai.'</p>';

@@ -2,10 +2,7 @@
 // Cac phuong thuc telegram
 include __DIR__.'/database/config.inc.php'; // Database Config
 include __DIR__.'/database/Database.php'; // Class Database
-$sheetBangTinh 	=	'1swzaqa9eRT8qRAeKpRnSCAQ2VIotyfiuJK03LpQNYEE'; // Test
-$sheetDuAn 		=	'1M17CS2GJy_ibHL0Rn2AcmDQFBLiRl0F1pj9bue6piQE'; // Test
-/*$sheetBangTinh 	=	'1NgZq41xShwrIkxDxX5XpWlI7QL0D8npnfN7slj_gIK0';
-$sheetDuAn 		=	'1m_zf3zUJa4iHemxzDSHPJ9KHhN0868ShNoeqc7tQ-kQ';*/
+include __DIR__.'/settings.php';
 
 function siteUrl() {
     // base directory
@@ -228,6 +225,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
     $valueRange= new Google_Service_Sheets_ValueRange($client);
 
     $arrayGooglePlan    =   getGooglePlanData($tenPlan);
+    $totalRows          =   count($arrayGooglePlan);
 
     
 
@@ -237,19 +235,21 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
             $updateArray  =   array();
           foreach($value as $k => $v) {
             if($k == 'username' || $k == 'ho_ten' || $k == 'so_dao_pos' || $k == 'so_dau_tu') {
-				if($k == 'so_dao_pos' || $k == 'so_dau_tu') {
-                	$v  =   doubleval($v);
-            	}
+              if($k == 'so_dao_pos' || $k == 'so_dau_tu') {
+                  $v  =   doubleval($v);
+              }
                 $updateArray["values"][]     =   $v;
             } else {
-            	continue;
+              continue;
             }
-            
           }
           $valueRange->setValues($updateArray);
           $conf = ["valueInputOption" => "RAW"];
           $updateRange  =   $spreadsheet_range.'!b'.($a+11).':e'.($a+11);
           $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          $arrayKeys[]    =   $key;
+          unset($updateArray["values"]);
+          sleep(1);
           $status   =   true;
         } else {
             continue;
@@ -257,6 +257,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
       }
     }
 
+    // Facebook và Số Ví
     foreach($arrayUpdate as $key => $value) {
       foreach($arrayGooglePlan as $a => $b) {
         if(in_array($value['username'], $b)) {
@@ -265,14 +266,15 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
             if($k == 'facebook' || $k == 'so_vi') {
                 $updateArray["values"][]     =   $v;
             } else {
-            	continue;
+              continue;
             }
-            
           }
           $valueRange->setValues($updateArray);
           $conf = ["valueInputOption" => "RAW"];
           $updateRange  =   $spreadsheet_range.'!g'.($a+11).':h'.($a+11);
           $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          unset($updateArray["values"]);
+          sleep(1);
           $status   =   true;
         } else {
             continue;
@@ -294,6 +296,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
           $conf = ["valueInputOption" => "RAW"];
           $updateRange  =   $spreadsheet_range.'!i10';
           $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          sleep(1);
           break;
     }
 
@@ -303,20 +306,105 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
         if(in_array($value['username'], $b)) {
             $updateArray    =   array();
             $arrayChiaLai   =   getDataChiaLai($value['username'], $tenPlan);
-            foreach($arrayChiaLai as $k => $v) {
-              if($k == 'lai_coin') {
-                $updateArray["values"][]     =   $v;
+            if(!empty($arrayChiaLai)) {
+              foreach($arrayChiaLai as $k => $v) {
+                if($k == 'lai_coin') {
+                  $updateArray["values"][]     =   $v;
+                }
               }
+            } else {
+              $updateArray["values"][]     =   '0.00000000';
             }
           
           $valueRange->setValues($updateArray);
           $conf = ["valueInputOption" => "RAW"];
           $updateRange  =   $spreadsheet_range.'!i'.($a+11);
           $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          unset($updateArray["values"]);
+          sleep(1);
           $status   =   true;
         } else {
             continue;
         }
+      }
+    }
+
+    // Insert Thêm User Mới
+    $countNewUser   =   0;
+    foreach($arrayUpdate as $key => $value) {
+      if(in_array($key, $arrayKeys)) {
+        continue;
+      } else {
+        foreach($value as $k => $v) {
+          if($k == 'username' || $k == 'ho_ten' || $k == 'so_dao_pos' || $k == 'so_dau_tu') {
+            if($k == 'so_dao_pos' || $k == 'so_dau_tu') {
+                $v  =   doubleval($v);
+            }
+              $updateArray["values"][]     =   $v;
+          } else {
+            continue;
+          }
+        }
+        $valueRange->setValues($updateArray);
+        $conf = ["valueInputOption" => "RAW"];
+        $updateRange  =   $spreadsheet_range.'!b'.($totalRows+$countNewUser+11).':e'.($totalRows+$countNewUser+11); 
+        $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+        $countNewUser++;
+        sleep(1);
+        unset($updateArray["values"]);
+        $status   =   true;
+      }
+    }
+
+    // Facebook va So Vi
+    $countNewUser   =   0;
+    foreach($arrayUpdate as $key => $value) {
+      if(in_array($key, $arrayKeys)) {
+        continue;
+      } else {
+        foreach($value as $k => $v) {
+          if($k == 'facebook' || $k == 'so_vi') {
+              $updateArray["values"][]     =   $v;
+          } else {
+            continue;
+          }
+        }
+        $valueRange->setValues($updateArray);
+        $conf = ["valueInputOption" => "RAW"];
+        $updateRange  =   $spreadsheet_range.'!g'.($totalRows+$countNewUser+11).':h'.($totalRows+$countNewUser+11); 
+        $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+        $countNewUser++;
+        sleep(1);
+        unset($updateArray["values"]);
+        $status   =   true;
+      }
+    }
+
+    // Lãi Coin
+    $countNewUser   =   0;
+    foreach($arrayUpdate as $key => $value) {
+      if(in_array($key, $arrayKeys)) {
+        continue;
+      } else {
+        $arrayChiaLai   =   getDataChiaLai($value['username'], $tenPlan);
+        if(!empty($arrayChiaLai)) {
+          foreach($arrayChiaLai as $k => $v) {
+            if($k == 'lai_coin') {
+              $updateArray["values"][]     =   $v;
+            }
+          }
+        } else {
+          $updateArray["values"][]     =   '0.00000000';
+        }
+        
+        $valueRange->setValues($updateArray);
+        $conf = ["valueInputOption" => "RAW"];
+        $updateRange  =   $spreadsheet_range.'!i'.($totalRows+$countNewUser+11); 
+        $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+        $countNewUser++;
+        sleep(1);
+        unset($updateArray["values"]);
+        $status   =   true;
       }
     }
 

@@ -2,10 +2,7 @@
 // Cac phuong thuc telegram
 include __DIR__.'/database/config.inc.php'; // Database Config
 include __DIR__.'/database/Database.php'; // Class Database
-$sheetBangTinh 	=	'1swzaqa9eRT8qRAeKpRnSCAQ2VIotyfiuJK03LpQNYEE'; // Test
-$sheetDuAn 		=	'1M17CS2GJy_ibHL0Rn2AcmDQFBLiRl0F1pj9bue6piQE'; // Test
-/*$sheetBangTinh 	=	'1NgZq41xShwrIkxDxX5XpWlI7QL0D8npnfN7slj_gIK0';
-$sheetDuAn 		=	'1m_zf3zUJa4iHemxzDSHPJ9KHhN0868ShNoeqc7tQ-kQ';*/
+include __DIR__.'/settings.php';
 
 function siteUrl() {
     // base directory
@@ -206,7 +203,7 @@ function getDataChiaLai($userName, $tenPlan) {
   $db->close();
 }
 
-function updatePlansSheet($tenPlan, $arrayUpdate) {
+function updatePlansSheet($tenPlan, $arrayUpdate = null) {
     require 'vendor/autoload.php';
 
     global $sheetBangTinh;
@@ -229,11 +226,9 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
 
     $arrayGooglePlan    =   getGooglePlanData($tenPlan);
 
-    
-
     foreach($arrayUpdate as $key => $value) {
       foreach($arrayGooglePlan as $a => $b) {
-        if($value['telegram_id'] == $b['0']) {
+        if(trim($value['username']) == trim($b['1'])) {
             $updateArray  =   array();
           foreach($value as $k => $v) {
             if($k == 'telegram_id' || $k == 'username' || $k == 'ho_ten' || $k == 'so_dao_pos') {
@@ -250,6 +245,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
           $conf = ["valueInputOption" => "RAW"];
           $updateRange  =   $spreadsheet_range.'!a'.($a+11).':d'.($a+11);
           $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          sleep(1);
           $status   =   true;
         } else {
             continue;
@@ -259,7 +255,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
 
     foreach($arrayUpdate as $key => $value) {
       foreach($arrayGooglePlan as $a => $b) {
-        if($value['telegram_id'] == $b['0']) {
+        if(trim($value['username']) == trim($b['1'])) {
             $updateArray  =   array();
           foreach($value as $k => $v) {
             if($k == 'so_vi') {
@@ -273,6 +269,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
           $conf = ["valueInputOption" => "RAW"];
           $updateRange  =   $spreadsheet_range.'!g'.($a+11);
           $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          sleep(1);
           $status   =   true;
         } else {
             continue;
@@ -282,7 +279,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
 
     foreach($arrayUpdate as $key => $value) {
       foreach($arrayGooglePlan as $a => $b) {
-        if($value['telegram_id'] == $b['0']) {
+        if(trim($value['username']) == trim($b['1'])) {
             $updateArray  =   array();
           foreach($value as $k => $v) {
             if($k == 'tai_dau_tu') {
@@ -296,6 +293,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
           $conf = ["valueInputOption" => "RAW"];
           $updateRange  =   $spreadsheet_range.'!i'.($a+11);
           $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          sleep(1);
           $status   =   true;
         } else {
             continue;
@@ -305,7 +303,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
 
     foreach($arrayUpdate as $key => $value) {
       foreach($arrayGooglePlan as $a => $b) {
-        if($value['telegram_id'] == $b['0']) {
+        if(trim($value['username']) == trim($b['1'])) {
             $updateArray  =   array();
           foreach($value as $k => $v) {
             if($k == 'yeu_cau_khac') {
@@ -319,6 +317,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
           $conf = ["valueInputOption" => "RAW"];
           $updateRange  =   $spreadsheet_range.'!n'.($a+11);
           $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          sleep(1);
           $status   =   true;
         } else {
             continue;
@@ -338,6 +337,7 @@ function callUpdatePlans($tenPlan) {
     }*/
     $arrayCurrentPlan   =   getDataChiTiet($tenPlan);
     $status   =   updatePlansSheet($tenPlan, $arrayCurrentPlan);
+
     if($status == true) {
       return 'Cập nhật bảng '.$tenPlan.' thành công';
     } else {

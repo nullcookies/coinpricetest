@@ -50,29 +50,36 @@ function getCurrentUserInfo($telegramId) {
   $arrayResult  =   array();
   $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
   $currentUser  =   getCurrentUser($telegramId);
-  $queryInfo    =   $db->query("SELECT u.`ho_ten`, u.`email`, u.`facebook`,c.`ten_plan`, c.`so_vi` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` WHERE u.`username` = ':username' AND c.`so_dao_pos` NOT LIKE '0.00000%'",[ 'username'=>$currentUser])->fetch_all();
-  foreach ($queryInfo as $key => $value) {
-    foreach ($value as $k => $v) {
-      $arrayResult['username']    =   $currentUser;
-      $arrayResult['ho_ten']      =   $value['ho_ten'];
-      $arrayResult['facebook']    =   $value['facebook'];
-      $arrayResult['email']       =   $value['email'];
-      if($k == 'ten_plan' || $k == 'so_vi') {
-        $arrayResult['plan_tham_gia'][$key][$k]    =   $v;
+  $queryCheck   =   $db->findByCol('chitietplan','username', $currentUser);
+  if(empty($queryCheck)) {
+    $queryInfo    = $db->query("SELECT `ho_ten`, `email`, `facebook` FROM `users` WHERE `username` = ':username'",[ 'username'=>$currentUser])->fetch();
+    $result   =   "Thông tin của bạn:\nUsername: ".$currentUser."\nHọ Tên: ".$queryInfo['ho_ten']."\nFacebook: ".$queryInfo['facebook']."\nEmail: ".$queryInfo['email'];
+  } else {
+    $queryInfo    =   $db->query("SELECT u.`ho_ten`, u.`email`, u.`facebook`,c.`ten_plan`, c.`so_vi` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` WHERE u.`username` = ':username' AND c.`so_dao_pos` NOT LIKE '0.00000%'",[ 'username'=>$currentUser])->fetch_all();
+    foreach ($queryInfo as $key => $value) {
+      foreach ($value as $k => $v) {
+        $arrayResult['username']    =   $currentUser;
+        $arrayResult['ho_ten']      =   $value['ho_ten'];
+        $arrayResult['facebook']    =   $value['facebook'];
+        $arrayResult['email']       =   $value['email'];
+        if($k == 'ten_plan' || $k == 'so_vi') {
+          $arrayResult['plan_tham_gia'][$key][$k]    =   $v;
+        }
       }
     }
-  }
-  /*echo '<pre>';
-  print_r($arrayResult);
-  echo '</pre>';*/
+    /*echo '<pre>';
+    print_r($arrayResult);
+    echo '</pre>';*/
 
-  $result 	=		"Thông tin của bạn:\nUsername: ".$currentUser."\nHọ Tên: ".$arrayResult['ho_ten']."\nFacebook: ".$arrayResult['facebook']."\nEmail: ".$arrayResult['email'];
-  foreach ($arrayResult['plan_tham_gia'] as $key => $value) {
-  	if(empty($value['so_vi'])) {
-  		$value['so_vi'] 	=	'Chưa đăng ký';
-  	}
-  	$result 	.=		"\n-------------\nPlan ".strtoupper($value['ten_plan'])."\nSố Ví: ".$value['so_vi'];
+    $result   =   "Thông tin của bạn:\nUsername: ".$currentUser."\nHọ Tên: ".$arrayResult['ho_ten']."\nFacebook: ".$arrayResult['facebook']."\nEmail: ".$arrayResult['email'];
+    foreach ($arrayResult['plan_tham_gia'] as $key => $value) {
+      if(empty($value['so_vi'])) {
+        $value['so_vi']   = 'Chưa đăng ký';
+      }
+      $result   .=    "\n-------------\nPlan ".strtoupper($value['ten_plan'])."\nSố Ví: ".$value['so_vi'];
+    }
   }
+  
   return $result;
   
   $db->close();
@@ -93,6 +100,7 @@ function checkLogin($username, $password) {
     $db->close();
 }
 
+// Kiểm tra user có trong plan hay không
 function checkUserPlan($telegramId, $tenPlan) {
   $result     =   false;
   $db         =   new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
@@ -103,6 +111,30 @@ function checkUserPlan($telegramId, $tenPlan) {
   }
   return $result;
   $db->close();
+}
+
+// Kiem tra so vi co ton tai trong hệ thống hay không
+function checkUserWallet($requestWallet) {
+  $result       =   false;
+  $db           =   new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $currentUser  =   getCurrentUser($telegramId);
+  $arrayData    =   $db->findByCol('chitietplan','so_vi',$requestWallet);
+  if(!empty($arrayData)) {
+    $result   =   true;
+  }
+  return $result;
+  $db->close();
+}
+
+function checkStatusWallet() {
+    $result   =   false;
+    $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+    $queryData  =   $db->query("SELECT `active_so_vi` FROM :table GROUP BY `active_so_vi`",['table'=>'chitietplan'])->fetch();
+    if($queryData['active_so_vi'] == true) {
+        $result     =   true;
+    }
+    return $result;
+    $db->close();
 }
 
 // Thêm telegram_id nếu user mới đăng nhập lần đầu
@@ -216,7 +248,8 @@ function updateRequestCoin($telegramId, $tenPlan, $updateText, $typeUpdate) {
 function checkUserExisting($userName) {
   $result   =   false;
   $db               =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
-  $arrayData        =       $db->findByCol('users','username',$userName);
+  //$arrayData        =       $db->findByCol('users','username',$userName);
+  $arrayData 		=	$db->query("SELECT * FROM :table WHERE `username` LIKE ':username'",['table'=>'users','username'=> $userName ])->fetch();
   if(!empty($arrayData)) {
     $result   =   true;
   }
@@ -224,6 +257,7 @@ function checkUserExisting($userName) {
   $db->close();
 }
 
+// Kiểm tra Email đã được đăng ký hay chưa
 function checkEmailExisting($email) {
   $result   =   false;
   $db               =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
@@ -235,20 +269,28 @@ function checkEmailExisting($email) {
   $db->close();
 }
 
-//
-function showAllPlans() {
+//Show tất cả các plans
+function checkTelegramExisting($telegramId) {
   $result   =   '';
   $db               =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
-  $arrayData        =       $db->query("SELECT `ten_plan` FROM :table WHERE `ten_plan` != 'bullcoin'",['table'=>'plans'])->fetch_all();
-
-  foreach ($arrayData as $key => $value) {
-    $result   .=  "- ".strtoupper($value['ten_plan'])."\n";
+  $arrayData        =       $db->findByCol('users','telegram_id',$telegramId);
+  if(!empty($arrayData)) {
+    $result   =   true;
   }
   return $result;
   $db->close();
 }
 
-function sendRegisterMail($registerUser = null, $registerPassword = null, $registerFullname = null, $registerFacebook = null, $registerEmail = null, $registerPlan = null, $registerWallet = null, $registerOther = null) {
+function insertNewUser($registerUser, $registerPassword, $registerFullname, $registerFacebook = null,$telegramId, $registerEmail = null) {
+	$result   =   false;
+  	$db               =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  	$result = $db->insert('users',['username'=>$registerUser,'password'=>$registerPassword, 'ho_ten'=>$registerFullname, 'facebook'=>$registerFacebook, 'telegram_id'=>$telegramId, 'email'=>$registerEmail, 'roles'=>'member']);
+
+  	return $result;
+  	$db->close();
+}
+
+function sendRegisterMail($registerUser = null, $registerPassword = null, $registerFullname = null, $registerFacebook = null, $registerEmail) {
     $mail = new PHPMailer(true);
     $result   =   false;
     $today = date("d/m/Y");
@@ -272,15 +314,15 @@ function sendRegisterMail($registerUser = null, $registerPassword = null, $regis
         $mail->Port = 465;                    //smtp port
 
         $mail->setFrom('ta.team.rb@gmail.com', 'Registered From Telegram bot');
-        $mail->addAddress("ta.team.rb@gmail.com");
+        $mail->addAddress($registerEmail, vn_to_str($registerFullname));
 
         /*$mail->addAttachment(__DIR__ . '/attachment1.png');
         $mail->addAttachment(__DIR__ . '/attachment2.jpg');*/
 
         $mail->isHTML(true);
 
-        $mail->Subject = "User Register Email - date: $today";
-        $mail->Body    = "Xin chào !<br /> Có user đăng ký từ bot Telegram với thông tin sau:<br />Username: <b>$registerUser</b><br />Password: <b>$registerPassword</b><br />Họ Tên: <b>$registerFullname</b><br />Facebook: <b>$registerFacebook</b><br />Email: <b>$registerEmail</b><br />Plan đăng ký: <b>$registerPlan</b><br />Số ví: <b>$registerWallet</b><br />Yêu cầu khác: <b>$registerOther</b><br />";
+        $mail->Subject = "Welcome to Team TA";
+        $mail->Body    = "Xin chào $registerFullname !<br /> Bạn vừa đăng ký tài khoản từ Telegram Bot với thông tin sau:<br />Username: <b>$registerUser</b><br />Password: <b>$registerPassword</b><br />Họ Tên: <b>$registerFullname</b><br />Facebook: <b>$registerFacebook</b><br />Email: <b>$registerEmail</b><br />Vui lòng dùng username và password để đăng nhập vào Telegram Bot của chúng tôi<br />Xin cám ơn !";
 
         if (!$mail->send()) {
             echo 'Message could not be sent.';

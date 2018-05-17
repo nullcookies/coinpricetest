@@ -28,6 +28,17 @@
         <p class="lead"></p>
       </div>
       <div class="row">
+        <p class="text-center"><?php echo getStatusWallet(); ?></p>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <p class="text-center"><a type="button" class="btn btn-danger" href="<?php echo siteUrl(); ?>/admin/get.php?active_so_vi=0">Không cho sửa số ví</a></p>
+        </div>
+        <div class="col-md-6">
+          <p class="text-center"><a type="button" class="btn btn-success" href="<?php echo siteUrl(); ?>/admin/get.php?active_so_vi=1">Cho sửa số ví</a></p>
+        </div>
+      </div>
+      <div class="row">
       	<div class="col-md-6">
      		<p class="text-center"><a href="<?php echo siteUrl(); ?>/admin/get.php?import_data=yes" class="btn btn-primary">Lấy data từ Google Doc</a></p>
         </div>
@@ -35,16 +46,23 @@
   			
     		</div>
       </div>
-    </div>
+      <?php
+        if(isset($_GET['import_data'])) {
+          echo '<p>'.updateTableUser().'</p>';
+          echo '<p>'.updateTablePlans().'</p>';
+          echo '<p>'.updateTableChiTiet().'</p>';
+          echo '<p>'.updateTableChiaLai().'</p>';
+        }
 
-    <?php
-      if(isset($_GET['import_data'])) {
-        echo '<p>'.updateTableUser().'</p>';
-        echo '<p>'.updateTablePlans().'</p>';
-        echo '<p>'.updateTableChiTiet().'</p>';
-        echo '<p>'.updateTableChiaLai().'</p>';
-      }
-    ?>
+        if(isset($_GET['active_so_vi'])) {
+          $requestActive  = $_GET['active_so_vi'];
+          $result   =   requestActiveWallet($requestActive);
+          if($result == true) {
+            echo '<p>Cập nhật thành công</p>';
+          }
+        }
+      ?>
+    </div>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>

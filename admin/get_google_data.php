@@ -2,10 +2,7 @@
 // Cac phuong thuc telegram
 include __DIR__.'/database/config.inc.php'; // Database Config
 include __DIR__.'/database/Database.php'; // Class Database
-/*$sheetBangTinh 	=	'1swzaqa9eRT8qRAeKpRnSCAQ2VIotyfiuJK03LpQNYEE';
-$sheetDuAn 		=	'1M17CS2GJy_ibHL0Rn2AcmDQFBLiRl0F1pj9bue6piQE';*/ // Test
-$sheetBangTinh 	=	'1NgZq41xShwrIkxDxX5XpWlI7QL0D8npnfN7slj_gIK0';
-$sheetDuAn 		=	'1m_zf3zUJa4iHemxzDSHPJ9KHhN0868ShNoeqc7tQ-kQ';
+include __DIR__.'/settings.php';
 function siteUrl() {
 	// base directory
 	$base_dir = __DIR__;
@@ -27,6 +24,26 @@ function siteUrl() {
 	$url = "${protocol}://${domain}${disp_port}";
 
 	return $url;
+}
+
+// Cho phép sửa số ví hay không
+function requestActiveWallet($request) {
+    $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+    $result = $db->update('chitietplan',['active_so_vi'=>$request]);
+    return $result;
+    $db->close();
+}
+
+function getStatusWallet() {
+    $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+    $queryData  =   $db->query("SELECT `active_so_vi` FROM :table GROUP BY `active_so_vi`",['table'=>'chitietplan'])->fetch();
+    if($queryData['active_so_vi'] == true) {
+        $result     =   'Trạng thái hiện tại: <b>Cho</b> phép sửa số ví';
+    } else {
+        $result     =   'Trạng thái hiện tại: <b>Không</b> cho phép sửa số ví';
+    }
+    return $result;
+    $db->close();
 }
 
 //Lay Mang User Tren Google Doc
@@ -230,6 +247,10 @@ function getUserRequest($tenPlan) {
     		$resultArray[$key]['yeu_cau_khac'] 	=	'Chưa có yêu cầu';
     	}
     }
+
+    /*echo '<pre>';
+    print_r($resultArray);
+    echo '</pre>';*/
 
     return $resultArray;
 }
