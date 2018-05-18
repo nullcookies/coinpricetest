@@ -360,7 +360,7 @@ function updateTableUser() {
 			$result = $db->update('users',['password'=>$value['password'], 'ho_ten'=>$value['ho_ten'], 'facebook'=>$value['facebook'], 'telegram_id'=>$value['telegram_id']],' username = "'.$value["username"].'"');
 			
 		} else {
-			$result = $db->insert('users',['username'=>$value['username'], 'password'=>$value['password'], 'ho_ten'=>$value['ho_ten'], 'facebook'=>$value['facebook'], 'telegram_id'=>$value['telegram_id']]);
+			$result = $db->insert('users',['username'=>trim($value['username']), 'password'=>$value['password'], 'ho_ten'=>$value['ho_ten'], 'facebook'=>$value['facebook'], 'telegram_id'=>$value['telegram_id']]);
 		}
 	}
 	if($result == true) {
