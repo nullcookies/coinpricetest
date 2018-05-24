@@ -16,9 +16,12 @@ $queryData        =   $query['data'];
 $querymsgId       =   $query['message']['message_id'];
 $querymsgText     =   $query['message']['text'];
 
+$CoinExchangeFee  =	  0.005;
+
 define('BOT_TOKEN', '481065752:AAGrj0BLfzRU-OYzwQAN0-TkZqhhFU-JlcE');
 define('A_USER_CHAT_ID', $chatId);
 define('A_USER_MESSAGE', $text);
+define('COIN_FEE', $CoinExchangeFee);
 
 $nutKhoiTao =	array(
 		'🔐 Đăng Nhập', // $nutKhoiTao[0]
