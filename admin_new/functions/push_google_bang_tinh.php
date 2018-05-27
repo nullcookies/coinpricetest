@@ -67,6 +67,10 @@ function getDbUser() {
             
         }
     }
+
+    /*echo '<pre>';
+    print_r($queryUser);
+    echo '</pre>';*/
     
     return $queryUser;
     $db->close();
@@ -123,7 +127,7 @@ function updateUserSheet() {
   array_shift($arrayData);
   
   foreach($arrayUser as $key => $value) {
-      $updateArray  =   array();
+      $updateArray['values']  =   array();
       foreach($value as $k => $v) {
         $updateArray["values"][]     =   $v;
       }
@@ -180,10 +184,10 @@ function getGooglePlanData($tenPlan) {
 
 function getDataChiTiet($tenPlan) {
     $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
-    $queryUser = $db->query("SELECT `username` FROM :table WHERE `ten_plan` = ':ten_plan'",['table'=>'chitietplan', 'ten_plan'=>$tenPlan])->fetch_all();
+    $queryUser = $db->query("SELECT `username` FROM :table WHERE `ten_plan` = ':ten_plan' AND `so_dao_pos` NOT LIKE '0.00000%'",['table'=>'chitietplan', 'ten_plan'=>$tenPlan])->fetch_all();
     foreach($queryUser as $key => $value) {
         //$queryData[$key] = $db->query("SELECT c.`username`, u.`ho_ten`, c.`so_dao_pos`, c.`so_dau_tu`, c.`co_phan`, u.`facebook`, c.`so_vi` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` WHERE c.`username` = ':username' AND `ten_plan` = ':ten_plan'",['username'=>$value['username'], 'ten_plan'=>$tenPlan])->fetch();
-        $queryData[$key] = $db->query("SELECT u.`telegram_id`, u.`username`, u.`ho_ten`, c.`so_dao_pos`, c.`so_vi`,c.`tai_dau_tu`, c.`yeu_cau_khac` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` WHERE c.`username` = ':username' AND `ten_plan` = ':ten_plan'",['username'=>$value['username'], 'ten_plan'=>$tenPlan])->fetch();
+        $queryData[$key] = $db->query("SELECT u.`telegram_id`, u.`username`, u.`ho_ten`, c.`so_dao_pos`, c.`so_vi`,c.`tai_dau_tu`, c.`yeu_cau_khac`, c.`yeu_cau_ngay` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` WHERE c.`username` = ':username' AND `ten_plan` = ':ten_plan'",['username'=>$value['username'], 'ten_plan'=>$tenPlan])->fetch();
         
         
     }
@@ -326,6 +330,31 @@ function updatePlansSheet($tenPlan, $arrayUpdate = null) {
       }
     }
 
+    // Tai rút ngày
+    foreach($arrayUpdate as $key => $value) {
+      foreach($arrayGooglePlan as $a => $b) {
+        if(trim($value['username']) == trim($b['1'])) {
+            $updateArray  =   array();
+          foreach($value as $k => $v) {
+            if($k == 'yeu_cau_ngay') {
+                $updateArray["values"][]     =   $v;
+            } else {
+              continue;
+            }
+            
+          }
+          $valueRange->setValues($updateArray);
+          $conf = ["valueInputOption" => "RAW"];
+          $updateRange  =   $spreadsheet_range.'!o'.($a+11);
+          $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          sleep(1);
+          $status   =   true;
+        } else {
+            continue;
+        }
+      }
+    }
+
     return $status;
 }
 
@@ -338,6 +367,116 @@ function callUpdatePlans($tenPlan) {
     }*/
     $arrayCurrentPlan   =   getDataChiTiet($tenPlan);
     $status   =   updatePlansSheet($tenPlan, $arrayCurrentPlan);
+
+    if($status == true) {
+      return 'Cập nhật bảng '.$tenPlan.' thành công';
+    } else {
+      return 'Cập nhật bảng '.$tenPlan.' không thành công';
+    }
+}
+
+//Update Tái rút và yêu cầu tháng
+function updateTaiRut($tenPlan, $arrayUpdate = null) {
+    require 'vendor/autoload.php';
+
+    global $sheetBangTinh;
+
+    $service_account_file = 'client_services.json';
+
+    $spreadsheet_id = $sheetBangTinh;
+
+    $spreadsheet_range = $tenPlan;
+
+    $status   = false;
+
+    putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $service_account_file);
+    $client = new Google_Client();
+    $client->useApplicationDefaultCredentials();
+    $client->addScope(Google_Service_Sheets::SPREADSHEETS);
+    $service = new Google_Service_Sheets($client);
+
+    $valueRange= new Google_Service_Sheets_ValueRange($client);
+
+    $arrayGooglePlan    =   getGooglePlanData($tenPlan);
+
+    foreach($arrayUpdate as $key => $value) {
+      foreach($arrayGooglePlan as $a => $b) {
+        if(trim($value['username']) == trim($b['1'])) {
+            $updateArray  =   array();
+          foreach($value as $k => $v) {
+            if($k == 'tai_dau_tu') {
+                $updateArray["values"][]     =   $v;
+            } else {
+              continue;
+            }
+            
+          }
+          $valueRange->setValues($updateArray);
+          $conf = ["valueInputOption" => "RAW"];
+          $updateRange  =   $spreadsheet_range.'!i'.($a+11);
+          $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          sleep(1);
+          $status   =   true;
+        } else {
+            continue;
+        }
+      }
+    }
+
+    foreach($arrayUpdate as $key => $value) {
+      foreach($arrayGooglePlan as $a => $b) {
+        if(trim($value['username']) == trim($b['1'])) {
+            $updateArray  =   array();
+          foreach($value as $k => $v) {
+            if($k == 'yeu_cau_khac') {
+                $updateArray["values"][]     =   $v;
+            } else {
+              continue;
+            }
+            
+          }
+          $valueRange->setValues($updateArray);
+          $conf = ["valueInputOption" => "RAW"];
+          $updateRange  =   $spreadsheet_range.'!n'.($a+11);
+          $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          sleep(1);
+          $status   =   true;
+        } else {
+            continue;
+        }
+      }
+    }
+
+    foreach($arrayUpdate as $key => $value) {
+      foreach($arrayGooglePlan as $a => $b) {
+        if(trim($value['username']) == trim($b['1'])) {
+            $updateArray  =   array();
+          foreach($value as $k => $v) {
+            if($k == 'yeu_cau_ngay') {
+                $updateArray["values"][]     =   $v;
+            } else {
+              continue;
+            }
+            
+          }
+          $valueRange->setValues($updateArray);
+          $conf = ["valueInputOption" => "RAW"];
+          $updateRange  =   $spreadsheet_range.'!o'.($a+11);
+          $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+          sleep(1);
+          $status   =   true;
+        } else {
+            continue;
+        }
+      }
+    }
+
+    return $status;
+}
+
+function callUpdateTaiRut($tenPlan) {
+    $arrayCurrentPlan   =   getDataChiTiet($tenPlan);
+    $status             =   updateTaiRut($tenPlan, $arrayCurrentPlan);
 
     if($status == true) {
       return 'Cập nhật bảng '.$tenPlan.' thành công';

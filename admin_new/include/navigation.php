@@ -38,8 +38,10 @@
               <a href="push_du_an.php"><i class="fa fa-fw fa-file-text"></i> Push Bảng Dự Án</a>
             </li>
             <li>
-
               <a href="push_bang_tinh.php"><i class="fa fa-fw fa-calculator"></i> Push Bảng Tính</a>
+            </li>
+            <li>
+              <a href="push_tai_rut.php"><i class="fa fa-fw fa-refresh"></i> Push Tái/Rút</a>
             </li>
           </ul>
         </li>

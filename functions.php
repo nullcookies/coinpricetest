@@ -18,6 +18,16 @@ function removeData($id){
     apc_delete ($id);
 }
 
+function checkNgayChiaLai(){
+	$result 	=	false;
+	date_default_timezone_set('Asia/Ho_Chi_Minh');
+	$date = new DateTime();
+	if($date->format('D') === 'Fri')  {
+		$result 	=	true;
+	} 
+	return $result;
+}
+
 // Lấy tên các plan hiện tại trong database
 function getCurrentPlans() {
   $arrayPlans   =   array();
@@ -128,6 +138,13 @@ function checkUserPlan($telegramId, $tenPlan) {
   $db->close();
 }
 
+function checkUserRoles($userName) {
+  $db         =   new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $arrayData  =   $db->query("SELECT `roles` FROM :table WHERE `username` LIKE ':username'",['table'=>'users','username'=> $userName])->fetch();
+  return $arrayData['roles'];
+  $db->close();
+}
+
 // Kiem tra so vi co ton tai trong hệ thống hay không
 function checkUserWallet($requestWallet) {
   $result       =   false;
@@ -158,14 +175,14 @@ function insertTelegramId($userName, $telegramId) {
   $db             =   new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
   $arrayQuery     =   $db->findByCol('users','telegram_id', $telegramId);
   
-  if(!empty($arrayQuery)) {
+  if(!empty($arrayQuery['id'])) {
     $db->update('users',['telegram_id'=> 0]," id = '".$arrayQuery['id']."'");
   }
-  $arrayData  =   $db->query("SELECT * FROM :table WHERE `username` = ':username'",['table'=>'users','username'=> $userName ])->fetch();
+  $arrayData  =   $db->query("SELECT * FROM :table WHERE `username` LIKE ':username'",['table'=>'users','username'=> $userName ])->fetch();
 
-  if(empty($arrayData['telegram_id'])) {
+  //if(empty($arrayData['telegram_id'])) {
     $result = $db->update('users',['telegram_id'=> $telegramId]," username = '$userName'");
-  }
+  //}
   
   /*$arrayData  =   $db->query("SELECT * FROM :table WHERE `username` = ':username'",['table'=>'users','username'=> $userName ])->fetch();
 
@@ -222,6 +239,30 @@ function checkDetailPlan($telegramId, $request = null) {
   $db->close();
 }
 
+//Kiểm Tra Trạng Thái Rút Ngày/Tuần
+function checkStatusDailyRequest($telegramId, $tenPlan, $requestType = null) {
+	$result 			=		'';
+	$db         		=   	new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+	$currentUser      	=       getCurrentUser($telegramId);
+	if($requestType == 'daily') {
+		$arrayQuery =   $db->query("SELECT `yeu_cau_ngay` FROM `chitietplan` WHERE `username` LIKE ':username' AND `ten_plan` = ':ten_plan'", ['ten_plan' => $tenPlan, 'username'=>$currentUser])->fetch();
+		$result 		=		'Trạng thái: '.ucfirst($arrayQuery['yeu_cau_ngay']).' rút';
+	} else if($requestType == 'weekly') {
+		$arrayQuery =   $db->query("SELECT `tai_dau_tu` FROM `chitietplan` WHERE `username` LIKE ':username' AND `ten_plan` = ':ten_plan'", ['ten_plan' => $tenPlan, 'username'=>$currentUser])->fetch();
+		$result 		=		'Trạng thái: '.ucfirst($arrayQuery['tai_dau_tu']).' rút';
+	}
+	return $result;
+	$db->close();
+}
+
+// Kiểm Tra Plan có cho rút ngày hay không
+function checkDailyWithdraw($tenPlan) {
+	$db         =   new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+	$arrayQuery =   $db->query("SELECT `ghi_chu` FROM `plans` WHERE `ten_plan` = ':ten_plan'", ['ten_plan' => $tenPlan])->fetch();
+	return $arrayQuery['ghi_chu'];
+	$db->close();
+}
+
 // Kiểm tra chi tiết các plan
 function answerPlanDetail($telegramId, $queryData) {
   $db               =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
@@ -260,6 +301,8 @@ function updateRequestCoin($telegramId, $tenPlan, $updateText, $typeUpdate) {
     $queryData = $db->update('chitietplan',['tai_dau_tu'=> $updateText]," `ten_plan` = '$tenPlan' AND `username` = '$currentUser'");
   } elseif($typeUpdate == 'month') {
     $queryData = $db->update('chitietplan',['yeu_cau_khac'=> $updateText]," `ten_plan` = '$tenPlan' AND `username` = '$currentUser'");
+  } elseif($typeUpdate == 'daily') {
+    $queryData = $db->update('chitietplan',['yeu_cau_ngay'=> $updateText]," `ten_plan` = '$tenPlan' AND `username` = '$currentUser'");
   }
   if($queryData  == true) {
     $result   =   "Cập nhật thành công";
@@ -449,8 +492,10 @@ function checkCoinUser($telegramId) {
   if(!empty($arrayQuery)) {
     $result        .=       "Các plan bạn đang tham gia: \n";
   }
+  $soDaoPos 		=		'';
   foreach($arrayQuery as $key => $value) {
-    $result        .=       "Plan ".strtoupper($value['ten_plan'])."\n Số coin: ".$value['so_dao_pos']." ".$value['ky_hieu_coin']."\n----------------------------------\n";
+  	$soDaoPos 		=		(double)$value['so_dao_pos'];
+    $result        .=       "Plan ".strtoupper($value['ten_plan'])."\n Số coin: ".$soDaoPos." ".$value['ky_hieu_coin']."\n----------------------------------\n";
   }
   $result           .=      "Ghi tên plan bạn muốn chuyển coin:";
   return $result;
@@ -487,17 +532,34 @@ function checkEnoughCoinTransfer($telegramId, $tenPlan, $soCoinChuyen = null) {
   $db->close();
 }
 
-function sendConfirmExchange($telegramId, $emailUserSend, $userTo, $coinTransfer, $coinName) {
+function createRandomToken() {
+	$token                =       'qwertzuiopasdfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM0123456789';
+  	$token                =       str_shuffle($token);
+  	$token                =       substr($token, 0, 10);
+  	return $token;
+}
+
+function updateFailed($tokenCode) {
+	$result   =   false;
+  	$db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  	$arrayQuery           =       $db->query("SELECT `id` FROM :table WHERE `txtid` = ':token_code'",['table'=>'transactions', 'token_code' => $tokenCode])->fetch();
+
+  if(!empty($arrayQuery['id'])) {
+  	$result 	=	$db->update('transactions',['status'=> 'failed']," txtid = '".$tokenCode."'");
+  } 
+  return $result;
+  $db->close();
+}
+
+function sendConfirmExchange($telegramId, $emailUserSend, $userTo, $coinTransfer, $coinName, $tokenCode) {
   $db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
-  $token                =       'qwertzuiopasdfghjklyxcvbnmQWERTZUIOPASDFGHJKLYXCVBNM0123456789';
-  $token                =       str_shuffle($token);
-  $token                =       substr($token, 0, 10);
+  
   $mail                 =       new PHPMailer(true);
   $result               =       false;
   $today                =       date("Y-m-d H:i:s");
   $currentUser          =       getCurrentUser($telegramId);
   $userFullName         =       getFullName($currentUser);
-  $db->insert('transactions',['user_chuyen'=> $currentUser, 'user_nhan'=> $userTo, 'so_coin_chuyen' => $coinTransfer, 'ten_coin' => $coinName,'ngay_chuyen'=> $today, 'isConfirm' => 0, 'token' => $token]);
+  $db->insert('transactions',['user_chuyen'=> $currentUser, 'user_nhan'=> $userTo, 'so_coin_chuyen' => $coinTransfer, 'ten_coin' => $coinName,'ngay_chuyen'=> $today, 'isConfirm' => 0, 'token' => $tokenCode, 'txtid' => $tokenCode]);
   try {
       $mail->SMTPOptions = array(
       'ssl' => array(
@@ -526,7 +588,7 @@ function sendConfirmExchange($telegramId, $emailUserSend, $userTo, $coinTransfer
       $mail->isHTML(true);
 
       $mail->Subject = "Code xác nhận chuyển coin";
-      $mail->Body    = "Xin chào ".$userFullName."<br />Bạn đang thực hiện chuyển coin cho user: <b>".$userTo."</b><br />Số coin chuyển: <b>".$coinTransfer." ".$coinName."</b><br />Vui lòng nhập code dưới đây vào bot telegram để xác nhận việc chuyển coin: <b>".$token."</b><br />Lưu ý: giao dich sẽ bị hủy nếu bạn nhập sai code<br /> Mọi thắc mắc xin gửi mail về: <a href='mailto:ta.team.rb@gmail.com'>ta.team.rb@gmail.com</a><br />Xin cám ơn !";
+      $mail->Body    = "Xin chào ".$userFullName."<br />Bạn đang thực hiện chuyển coin cho user: <b>".$userTo."</b><br />Số coin chuyển: <b>".$coinTransfer." ".$coinName."</b><br />Vui lòng nhập code dưới đây vào bot telegram để xác nhận việc chuyển coin: <b>".$tokenCode."</b><br />Lưu ý: <b>Code có hiệu lực trong vòng 5 phút, giao dich sẽ bị hủy nếu bạn nhập sai code</b><br /> Mọi thắc mắc xin gửi mail về: <a href='mailto:ta.team.rb@gmail.com'>ta.team.rb@gmail.com</a><br />Xin cám ơn !";
 
       if (!$mail->send()) {
           echo 'Message could not be sent.';
@@ -544,29 +606,32 @@ function sendConfirmExchange($telegramId, $emailUserSend, $userTo, $coinTransfer
 }
 
 // Kiểm tra code xác nhận
-function checkConfirmCode($userChuyen, $userNhan, $confirmCode) {
+function checkConfirmCode($userChuyen, $userNhan, $tokenCode, $confirmCode) {
   $result   =   false;
   $db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
-  $arrayQuery           =       $db->query("SELECT `id`, `status` FROM :table WHERE `user_chuyen` LIKE ':user_chuyen' AND `user_nhan` LIKE ':user_nhan' AND `token` = ':token' AND `isConfirm` = 0",['table'=>'transactions','user_chuyen'=> $userChuyen, 'user_nhan'=> $userNhan, 'user_nhan'=> $userNhan, 'token' => $confirmCode])->fetch();
-  if(!empty($arrayQuery['id']) && $arrayQuery['id'] != 'failed') {
-    $result   =   true;
+  $arrayQuery           =       $db->query("SELECT `id`, `status`, `token` FROM :table WHERE `user_chuyen` LIKE ':user_chuyen' AND `user_nhan` LIKE ':user_nhan' AND `txtid` = ':token_code' AND `isConfirm` = 0",['table'=>'transactions','user_chuyen'=> $userChuyen, 'user_nhan'=> $userNhan, 'user_nhan'=> $userNhan, 'token_code' => $confirmCode])->fetch();
+
+  if(!empty($arrayQuery['id']) && $arrayQuery['status'] != 'failed') {
+  	if(trim($arrayQuery['token']) == trim($confirmCode)) {
+  		$result   =   true;
+  	} else {
+	  	$db->update('transactions',['status'=> 'failed']," txtid = '".$tokenCode."'");
+	  }
   } else {
-    $db->update('transactions',['status'=>'failed']," id = '".$arrayQuery['id']."'");
-  }
+	  	$db->update('transactions',['status'=> 'failed']," txtid = '".$tokenCode."'");
+  } 
   return $result;
   $db->close();
 }
 
 //
 function updateStatusTransactions($userChuyen, $userNhan, $confirmCode, $adminFee, $tenCoin) {
-  $result   =   false;
+  $result   =   '';
   $db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
-  $today                =       date("d/m/Y");
   $arrayQuery           =       $db->query("SELECT `id` FROM :table WHERE `user_chuyen` LIKE ':user_chuyen' AND `user_nhan` LIKE ':user_nhan' AND `token` = ':token' AND `isConfirm` = 0",['table'=>'transactions','user_chuyen'=> $userChuyen, 'user_nhan'=> $userNhan, 'user_nhan'=> $userNhan, 'token' => $confirmCode])->fetch();
   if(!empty($arrayQuery['id'])) {
     $result = $db->update('transactions',['isConfirm'=> 1,'token'=>'', 'status'=>'success']," id = '".$arrayQuery['id']."'");
-    $adminFee     =   (double)$adminFee;
-    updateAdminFee($today, $adminFee, $tenCoin, $arrayQuery['id']);
+    $result 	=	$arrayQuery['id'];  
   }
   return $result;
   $db->close();
@@ -575,28 +640,66 @@ function updateStatusTransactions($userChuyen, $userNhan, $confirmCode, $adminFe
 function transferUserCoin($userChuyen, $userNhan, $soCoinChuyen, $tenCoin, $coinFee = null) {
   $result                         =       false;
   $db                             =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  if(checkUserRoles($userNhan) == 'admin' || checkUserRoles($userNhan) == 'dev') {
+  	$coinFee 					  =		  0;
+  }
   $arrayQueryUserChuyen           =       $db->query("SELECT `so_dao_pos` FROM `chitietplan` WHERE `username` = ':username' AND `ten_plan` = ':ten_plan' ",['username'=> $userChuyen, 'ten_plan'=> strtolower($tenCoin)])->fetch();
   $arrayQueryUserNhan             =       $db->query("SELECT `so_dao_pos` FROM `chitietplan` WHERE `username` = ':username' AND `ten_plan` = ':ten_plan' ",['username'=> $userNhan, 'ten_plan'=> strtolower($tenCoin)])->fetch();
-  $soCoinUserChuyen               =       $arrayQueryUserChuyen['so_dao_pos'];
-  $soCoinUserNhan                 =       $arrayQueryUserChuyen['so_dao_pos'];
+  if(!empty($arrayQueryUserNhan['so_dao_pos'])) {
+  	$coinUserChuyen                 =       (double)$arrayQueryUserChuyen['so_dao_pos'];
+  	$coinUserNhan                   =       (double)$arrayQueryUserNhan['so_dao_pos'];
 
-  $soCoinUserChuyen               =       $soCoinUserChuyen - $soCoinChuyen;
-  $soCoinUserNhan                 =       $soCoinUserNhan + $soCoinChuyen;
+  	$soCoinChuyen 				  =		  (double)$soCoinChuyen;
 
-  $result                         =       $db->update('chitietplan',['so_dao_pos'=> $soCoinUserChuyen]," username LIKE '".$userChuyen."' AND ten_plan = '".$tenCoin."'");
+  	$soCoinUserChuyen               =       $coinUserChuyen - $soCoinChuyen;
+  	$coinWithFee                    =       $soCoinChuyen - ($soCoinChuyen * $coinFee);
+  	$soCoinUserNhan                 =       $coinUserNhan + $coinWithFee;
 
-  $result                         =       $db->update('chitietplan',['so_dao_pos'=> $soCoinUserNhan]," username LIKE '".$userNhan."' AND ten_plan = '".$tenCoin."'");
+  	$result                         =       $db->update('chitietplan',['so_dao_pos'=> $soCoinUserChuyen]," username LIKE '".$userChuyen."' AND ten_plan = '".$tenCoin."'");
 
-  if($result  == true) {
-      sendEmailToUserChuyen($userChuyen, $userNhan, $soCoinChuyen, $soCoinUserChuyen, $tenCoin, $coinFee);
-      sendEmailToUserNhan($userChuyen, $userNhan, $soCoinChuyen, $soCoinUserNhan, $tenCoin, $coinFee);
+  	$result                         =       $db->update('chitietplan',['so_dao_pos'=> $soCoinUserNhan]," username LIKE '".$userNhan."' AND ten_plan = '".$tenCoin."'");
+
+	  if($result  == true) {
+	      sendEmailToUserChuyen($userChuyen, $userNhan, $soCoinChuyen, $soCoinUserChuyen,$coinUserChuyen, $tenCoin, $coinFee);
+	      sendEmailToUserNhan($userChuyen, $userNhan, $soCoinChuyen, $soCoinUserNhan,$coinUserNhan, $tenCoin, $coinFee);
+	  }
+  } else {
+  	$coinUserChuyen                 =       (double)$arrayQueryUserChuyen['so_dao_pos'];
+  	$coinUserNhan                   =       0;
+
+  	$soCoinChuyen 				  	=		 (double)$soCoinChuyen;
+
+  	$soCoinUserChuyen               =       $coinUserChuyen - $soCoinChuyen;
+  	$coinWithFee                    =       $soCoinChuyen - ($soCoinChuyen * $coinFee);
+  	$soCoinUserNhan                 =       $coinUserNhan + $coinWithFee;
+
+  	$result                         =       $db->update('chitietplan',['so_dao_pos'=> $soCoinUserChuyen]," username LIKE '".$userChuyen."' AND ten_plan = '".$tenCoin."'");
+
+  	$result                         =       $db->update('chitietplan',['so_dao_pos'=> $soCoinUserNhan]," username LIKE '".$userNhan."' AND ten_plan = '".$tenCoin."'");
+  	$result 						=		$db->insert('chitietplan',['username'=>$userNhan,'ten_plan'=> strtolower($tenCoin), 'so_dao_pos'=> $soCoinUserNhan, 'so_dau_tu'=>'0.00000000', 'co_phan'=> '0.00', 'tai_dau_tu'=>'không', 'active_so_vi' => 1]);
+
+	  if($result  == true) {
+	      sendEmailToUserChuyen($userChuyen, $userNhan, $soCoinChuyen, $soCoinUserChuyen,$coinUserChuyen, $tenCoin, $coinFee);
+	      sendEmailToUserNhan($userChuyen, $userNhan, $soCoinChuyen, $soCoinUserNhan,$coinUserNhan, $tenCoin, $coinFee);
+	  }
   }
+  
+
+  /*echo 'userChuyen: '. $userChuyen . '<br />';
+  echo 'userNhan: '. $userNhan . '<br />';
+  echo 'soCoinChuyen: '. $soCoinChuyen . '<br />';
+  echo 'tenCoin: '. $tenCoin . '<br />';
+  echo 'coinFee: '. $coinFee . '<br />';
+  echo 'coinUserChuyen: '. $coinUserChuyen . '- type: '. gettype($coinUserChuyen). '<br />';
+  echo 'coinUserNhan: '. $coinUserNhan . '- type: '. gettype($coinUserNhan) . '<br />';
+  echo 'số Coin User Chuyển Sau Khi Chuyển: '. $soCoinUserChuyen . '- type: '. gettype($soCoinUserChuyen). '<br />';
+  echo 'số Coin User Nhận Sau Khi Nhận: '. $soCoinUserNhan . '- type: '. gettype($soCoinUserNhan) . '<br />';*/
 
   return $result;
   $db->close();
 }
 
-function sendEmailToUserChuyen($userChuyen, $userNhan, $soCoinChuyen, $soCoin, $tenCoin, $coinFee = null) {
+function sendEmailToUserChuyen($userChuyen, $userNhan, $soCoinChuyen, $soCoinLucSau,$soCoinLucDau, $tenCoin, $coinFee = null) {
   $db                               =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
   $mail                             =       new PHPMailer(true);
   $result                           =       false;
@@ -605,7 +708,7 @@ function sendEmailToUserChuyen($userChuyen, $userNhan, $soCoinChuyen, $soCoin, $
   $userChuyenFullName               =       getFullName($userChuyen);
   $userNhanFullName                 =       getFullName($userNhan);
 
-  $soCoinUserChuyenLucDau           =       $soCoin + $soCoinChuyen;
+  //$soCoinUserChuyenLucDau           =       $soCoin + $soCoinChuyen;
   $tenCoin                          =       strtoupper($tenCoin);
   try {
       $mail->SMTPOptions = array(
@@ -635,7 +738,7 @@ function sendEmailToUserChuyen($userChuyen, $userNhan, $soCoinChuyen, $soCoin, $
       $mail->isHTML(true);
 
       $mail->Subject = "Giao dịch chuyển Coin thành công";
-      $mail->Body    = "Xin chào ".$userChuyenFullName."<br />Bạn vừa thực hiện thành công giao dịch chuyển coin vào ngày ".$today." với thông tin như sau: <br />User nhận: <b>".$userNhan." (".$userNhanFullName.")</b><br />Số Coin ban đầu: <b>".$soCoinUserChuyenLucDau." ".$tenCoin."</b><br />Số Coin chuyển: <b>".$soCoinChuyen." ".$tenCoin."</b> (Đã bao gồm fee ".$coinFee."%)<br />Số Coin còn lại: <b>".$soCoin." ".$tenCoin."</b><br />Vui lòng kiểm tra bot telegram để xem lại thông tin<br /> Mọi thắc mắc xin gửi mail về: <a href='mailto:ta.team.rb@gmail.com'>ta.team.rb@gmail.com</a><br />Xin cám ơn !";
+      $mail->Body    = "Xin chào ".$userChuyenFullName."<br />Bạn vừa thực hiện thành công giao dịch chuyển coin vào ngày ".$today." với thông tin như sau: <br />User nhận: <b>".$userNhan." (".$userNhanFullName.")</b><br />Số Coin ban đầu: <b>".$soCoinLucDau." ".$tenCoin."</b><br />Số Coin chuyển: <b>".$soCoinChuyen." ".$tenCoin."</b><br />Số Coin còn lại: <b>".$soCoinLucSau." ".$tenCoin."</b><br />Vui lòng kiểm tra bot telegram để xem lại thông tin<br /> Mọi thắc mắc xin gửi mail về: <a href='mailto:ta.team.rb@gmail.com'>ta.team.rb@gmail.com</a><br />Xin cám ơn !";
 
       if (!$mail->send()) {
           echo 'Message could not be sent.';
@@ -651,7 +754,7 @@ function sendEmailToUserChuyen($userChuyen, $userNhan, $soCoinChuyen, $soCoin, $
   $db->close();
 }
 
-function sendEmailToUserNhan($userChuyen, $userNhan, $soCoinChuyen, $soCoin, $tenCoin, $coinFee = null) {
+function sendEmailToUserNhan($userChuyen, $userNhan, $soCoinChuyen, $soCoinlucSau, $soCoinLucDau, $tenCoin, $coinFee = null) {
   $db                                 =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
   $mail                               =       new PHPMailer(true);
   $result                             =       false;
@@ -660,7 +763,8 @@ function sendEmailToUserNhan($userChuyen, $userNhan, $soCoinChuyen, $soCoin, $te
   $userNhanFullName                   =       getFullName($userNhan);
   $userChuyenFullName                 =       getFullName($userChuyen);
 
-  $soCoinUserNhanLucDau               =       $soCoin - $soCoinChuyen;
+  //$soCoinUserNhanLucDau               =       $soCoin - $soCoinChuyen;
+  $coinWithFee                        =       ($soCoinChuyen - ($soCoinChuyen * $coinFee));
   $tenCoin                            =       strtoupper($tenCoin);
   try {
       $mail->SMTPOptions = array(
@@ -690,7 +794,7 @@ function sendEmailToUserNhan($userChuyen, $userNhan, $soCoinChuyen, $soCoin, $te
       $mail->isHTML(true);
 
       $mail->Subject = "Giao dịch chuyển Coin thành công";
-      $mail->Body    = "Xin chào ".$userNhanFullName."<br />Bạn vừa thực hiện thành công giao dịch chuyển coin vào ngày ".$today." với thông tin như sau: <br />User chuyển: <b>".$userChuyen." (".$userChuyenFullName.")</b><br />Số Coin ban đầu: <b>".$soCoinUserNhanLucDau." ".$tenCoin."</b><br />Số Coin nhận: <b>".$soCoinChuyen." ".$tenCoin."</b> (Đã bao gồm fee ".$coinFee."%)<br />Số Coin sau khi nhận: <b>".$soCoin." ".$tenCoin."</b><br />Vui lòng kiểm tra bot telegram để xem lại thông tin<br /> Mọi thắc mắc xin gửi mail về: <a href='mailto:ta.team.rb@gmail.com'>ta.team.rb@gmail.com</a><br />Xin cám ơn !";
+      $mail->Body    = "Xin chào ".$userNhanFullName."<br />Bạn vừa thực hiện thành công giao dịch chuyển coin vào ngày ".$today." với thông tin như sau: <br />User chuyển: <b>".$userChuyen." (".$userChuyenFullName.")</b><br />Số Coin ban đầu: <b>".$soCoinLucDau." ".$tenCoin."</b><br />Số Coin nhận: <b>".$coinWithFee." ".$tenCoin."</b> (Đã trừ fee ".($coinFee*100)."%)<br />Số Coin sau khi nhận: <b>".$soCoinlucSau." ".$tenCoin."</b><br />Vui lòng kiểm tra bot telegram để xem lại thông tin<br /> Mọi thắc mắc xin gửi mail về: <a href='mailto:ta.team.rb@gmail.com'>ta.team.rb@gmail.com</a><br />Xin cám ơn !";
 
       if (!$mail->send()) {
           echo 'Message could not be sent.';
@@ -759,17 +863,27 @@ function sendEmailToAdmin($userName, $soCoin, $tenCoin, $idGiaoDich = null) {
   $db->close();
 }
 
+function calculateAdminFee($transferFee, $roles) {
+	$db             =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+	$soCoinChia 	=		0;
+	$arrayQuery     =       $db->query("SELECT `username`, `roles` FROM `users` WHERE `roles` = ':roles'",['roles' => $roles])->fetch_all();
+	$numberPeople 	=		count($arrayQuery);
+	if($roles == 'admin') {
+		$soCoinChia 	=	($transferFee * 0.4)/$numberPeople;
+	} else if($roles == 'dev') {
+		$soCoinChia 	=	($transferFee * 0.6)/$numberPeople;
+	}
+	return $soCoinChia;
+	$db->close();
+}
+
 function updateAdminFee($ngayNhan, $soCoinNhan, $tenCoin, $idGiaoDich) {
   $result         =       false;
   $coinAdminGet   =       0;
   $db             =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
   $arrayQuery     =       $db->query("SELECT `username`, `roles` FROM `users` WHERE `roles` = ':admin' OR `roles` = ':dev' ",['admin'=> 'admin', 'dev'=> 'dev'])->fetch_all();
   foreach($arrayQuery as $key => $value) {
-    if($value['roles'] == 'admin') {
-        $coinAdminGet     =   (double)$soCoinNhan * 0.2;
-    } else if($value['roles'] == 'dev') {
-        $coinAdminGet     =   (double)$soCoinNhan * 0.3;
-    }
+    $coinAdminGet   =		 calculateAdminFee($soCoinNhan, trim($value['roles']));
     $arrayCoin              =       $db->query("SELECT `so_dao_pos` FROM `chitietplan` WHERE `username` = ':username' AND `ten_plan` = ':ten_plan' ",['username'=> $value['username'], 'ten_plan'=> strtolower($tenCoin)])->fetch();
     $userCoin               =       (double)$arrayCoin['so_dao_pos'];
 

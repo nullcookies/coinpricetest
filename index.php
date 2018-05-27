@@ -26,6 +26,7 @@ $stepWallet             =   getData('change-wallet-step-'.A_USER_CHAT_ID);
 $stepRegister           =   getData('step-register-'.A_USER_CHAT_ID);
 $stepExchange           =   getData('step-exchange-'.A_USER_CHAT_ID);
 //$verified            =   setData('verified-'.A_USER_CHAT_ID,'no');
+$tokenCode 				=		getData('token-exchange-'.A_USER_CHAT_ID);
 
   switch ($text) {
     case '/start':
@@ -73,40 +74,56 @@ $stepExchange           =   getData('step-exchange-'.A_USER_CHAT_ID);
       //require_once __DIR__.'/request/register.php';
       break;
     case $nutYeuCau[0]:
+      updateFailed($tokenCode);
       require_once __DIR__.'/types/inline_keyboard_plans.php';
       break;
     case $nutYeuCau[1]:
+      updateFailed($tokenCode);
       require_once __DIR__.'/types/yeu_cau_tuan.php';
       break;
     case $nutYeuCau[2]:
+      updateFailed($tokenCode);
       require_once __DIR__.'/types/yeu_cau_thang.php';
       break;
     case $nutYeuCau[3]:
-      if(checkUserHaveEmail(A_USER_CHAT_ID) == true) {
-        setData('step-exchange-'.A_USER_CHAT_ID,'1');
-        $sendMessage->chat_id = A_USER_CHAT_ID;
-        $sendMessage->text = 'Vui lòng nhập tên username bạn muốn chuyển: ';
+      if(checkNgayChiaLai() == true) {
+      	setData('step-exchange-'.A_USER_CHAT_ID,'0');
+      	$sendMessage->chat_id = A_USER_CHAT_ID;
+	    $sendMessage->text = 'Hôm nay là ngày chia lãi, bạn vui lòng yêu cầu vào ngày khác.';
       } else {
-        setData('step-exchange-'.A_USER_CHAT_ID,'0');
-        $sendMessage->chat_id = A_USER_CHAT_ID;
-        $sendMessage->text = 'Bạn chưa đăng ký email, vui lòng vào phần Sửa Thông Tin để đăng ký email !';
+      	if(checkUserHaveEmail(A_USER_CHAT_ID) == true) {
+	        setData('step-exchange-'.A_USER_CHAT_ID,'1');
+	        updateFailed($tokenCode);
+	        $sendMessage->chat_id = A_USER_CHAT_ID;
+	        $sendMessage->text = 'Vui lòng nhập tên username bạn muốn chuyển: ';
+	      } else {
+	        setData('step-exchange-'.A_USER_CHAT_ID,'0');
+	        $sendMessage->chat_id = A_USER_CHAT_ID;
+	        $sendMessage->text = 'Bạn chưa đăng ký email, vui lòng vào phần Sửa Thông Tin để đăng ký email !';
+	      }
       }
       //require_once __DIR__.'/types/chuyen_coin.php';
       break;
     case $nutYeuCau[4]:
+      updateFailed($tokenCode);
       require_once __DIR__.'/types/sua_thong_tin.php';
       break;
     case $nutChinhSua[0]: // Sửa Số Ví
       //require_once __DIR__.'/types/wallet.php';
-      if(checkStatusWallet() == true) {
-        setData('change-wallet-step-'.A_USER_CHAT_ID,'1');
-        $sendMessage->chat_id = A_USER_CHAT_ID;
-        $sendMessage->text = 'Vui lòng nhập Plan bạn muốn thay đổi số ví';
+      if(checkNgayChiaLai() == true) {
+      	setData('change-wallet-step-'.A_USER_CHAT_ID,'0');
+      	$sendMessage->chat_id = A_USER_CHAT_ID;
+	    $sendMessage->text = 'Hôm nay là ngày chia lãi, bạn vui lòng yêu cầu vào ngày khác.';
       } else {
-        $sendMessage->chat_id = A_USER_CHAT_ID;
-        $sendMessage->text = 'Chức năng này bị khóa tạm thời bởi người quản trị, vui lòng update lần sau.';
+      	if(checkStatusWallet() == true) {
+	        setData('change-wallet-step-'.A_USER_CHAT_ID,'1');
+	        $sendMessage->chat_id = A_USER_CHAT_ID;
+	        $sendMessage->text = 'Vui lòng nhập Plan bạn muốn thay đổi số ví';
+	      } else {
+	        $sendMessage->chat_id = A_USER_CHAT_ID;
+	        $sendMessage->text = 'Chức năng này bị khóa tạm thời bởi người quản trị, vui lòng update lần sau.';
+	      }
       }
-      
       break;
     case $nutChinhSua[1]: // Sửa Email
       setData('change-email-step-'.A_USER_CHAT_ID,'1');
@@ -367,12 +384,17 @@ $stepExchange           =   getData('step-exchange-'.A_USER_CHAT_ID);
 
       switch ($stepExchange) {
         case '1':
-          if(checkUserExchange($text) == true) {
+          $currentUser      =     getCurrentUser(A_USER_CHAT_ID);
+          if(trim($currentUser) == strtolower(trim($text))) {
+            $sendMessage->chat_id   =   A_USER_CHAT_ID;
+            $sendMessage->text      =   'Bạn không được chuyển cho chính user của bạn, vui lòng nhập user khác !';
+            setData('step-exchange-'.A_USER_CHAT_ID,'1');
+          } else if(checkUserExchange($text) == true) {
             $sendMessage->chat_id   =   A_USER_CHAT_ID;
             $sendMessage->text      =   checkCoinUser(A_USER_CHAT_ID);
             setData('user-exchange-'.A_USER_CHAT_ID,$text);
             setData('step-exchange-'.A_USER_CHAT_ID,'2');
-          } else {
+          }  else {
             $sendMessage->chat_id   =   A_USER_CHAT_ID;
             $sendMessage->text      =   'Username này chưa đăng ký, vui lòng nhập lại username:';
             setData('step-exchange-'.A_USER_CHAT_ID,'1');
@@ -398,21 +420,22 @@ $stepExchange           =   getData('step-exchange-'.A_USER_CHAT_ID);
               $planExchange           =   getData('plan-exchange-'.A_USER_CHAT_ID);
               $coinExchange           =   getData('coin-exchange-'.A_USER_CHAT_ID);
               if(checkEnoughCoinTransfer(A_USER_CHAT_ID, $planExchange, $coinExchange)) {
-                $sendMessage->chat_id   =   A_USER_CHAT_ID;
+                /*$sendMessage->chat_id   =   A_USER_CHAT_ID;
                 $coinWithFee            =   $coinExchange - ($coinExchange * COIN_FEE);
-                $sendMessage->text      =   "Vui lòng xác nhận lại các thông tin sau:\nUsername chuyển coin: ". $userExchange ." (".getFullName($userExchange) .")\nSố Coin muốn chuyển: ".$coinWithFee ." ".strtoupper($planExchange) ."\n(Đã trừ fee ".(COIN_FEE*100)."%)\nChọn xác nhận dưới đây:";
-                $row = null;
-                $inlineKeyboard = new Markup([
-                    'inline_keyboard' => [
-                        [
-                            ['text' => '✅ Xác Nhận', 'callback_data' => 'exchange_yes'],
-                            ['text' => '❌ Hủy', 'callback_data' => 'exchange_no'],
-                        ],
-                    ]
-                ]);
-                $sendMessage->disable_web_page_preview = true;
-                $sendMessage->parse_mode = 'HTML';
-                $sendMessage->reply_markup = $inlineKeyboard;
+                $sendMessage->text      =   "Vui lòng xác nhận lại các thông tin sau:\nUsername chuyển coin: ". $userExchange ." (".getFullName($userExchange) .")\nSố Coin muốn chuyển: ".$coinWithFee ." ".strtoupper($planExchange) ."\n(Đã trừ fee ".(COIN_FEE*100)."%)";*/
+                $userExchange           =   strtolower(getData('user-exchange-'.A_USER_CHAT_ID));
+                $planExchange           =   strtoupper(getData('plan-exchange-'.A_USER_CHAT_ID));
+                $coinExchange           =   getData('coin-exchange-'.A_USER_CHAT_ID);
+                $coinWithFee            =   $coinExchange - ($coinExchange * COIN_FEE);
+                $getUserRequest         =   getCurrentUser(A_USER_CHAT_ID);
+                $emailUserSend          =   strtolower(getUserEmail($getUserRequest));
+                $coinFee                =   COIN_FEE*100;
+                $tokenCode 				=	createRandomToken();
+                setData('token-exchange-'.A_USER_CHAT_ID,$tokenCode);
+                sendConfirmExchange(A_USER_CHAT_ID, $emailUserSend, $userExchange, $coinExchange, $planExchange, $tokenCode);
+                $sendMessage->chat_id   =   A_USER_CHAT_ID;
+                $sendMessage->text      =   "Chúng tôi đã gửi code xác nhận giao dịch của bạn qua email, vui lòng nhập code dưới đây: (Lưu ý: Code có hiệu lực trong vòng 5 phút) ";
+                setData('step-exchange-'.A_USER_CHAT_ID,'4');
               } else {
                 $sendMessage->chat_id   =   A_USER_CHAT_ID;
                 $sendMessage->text      =   'Số Coin bạn đang có không đủ, vui lòng nhập lại số coin khác:';
@@ -427,22 +450,30 @@ $stepExchange           =   getData('step-exchange-'.A_USER_CHAT_ID);
         case '4':
             $getUserRequest         =   getCurrentUser(A_USER_CHAT_ID);
             $userExchange           =   strtolower(getData('user-exchange-'.A_USER_CHAT_ID));
-            if(checkConfirmCode($getUserRequest, $userExchange, $text) == true) {
+            $tokenCode 				=	getData('token-exchange-'.A_USER_CHAT_ID);
+            if(checkConfirmCode($getUserRequest, $userExchange, $tokenCode, $text) == true) {
               $coinExchange           =   getData('coin-exchange-'.A_USER_CHAT_ID);
               $coinWithFee            =   $coinExchange - ($coinExchange * COIN_FEE);
               $planExchange           =   getData('plan-exchange-'.A_USER_CHAT_ID);
               $coinFee                =   COIN_FEE * 100;
               $adminFee               =   $coinExchange - $coinWithFee;
-              updateStatusTransactions($getUserRequest, $userExchange, $text, $adminFee, $planExchange);
-              $resultExchange         =   transferUserCoin($getUserRequest, $userExchange, $coinWithFee, $planExchange, $coinFee);
-              if($resultExchange == true) {
-                $sendMessage->chat_id   =   A_USER_CHAT_ID;
-                $sendMessage->text      =   'Giao dịch chuyển coin thành công, vui lòng kiểm tra email để xem thông tin !';
+              $idTransaction 		  =   updateStatusTransactions($getUserRequest, $userExchange, $text, $adminFee, $planExchange);
+              transferUserCoin($getUserRequest, $userExchange, $coinExchange, $planExchange, COIN_FEE);
+              
+              $sendMessage->chat_id   =   A_USER_CHAT_ID;
+              $sendMessage->text      =   'Giao dịch chuyển coin thành công, vui lòng kiểm tra email để xem thông tin !';
+              if(!empty($idTransaction)) {
+              	if(checkUserRoles($userExchange) != 'admin' || checkUserRoles($userExchange) != 'dev') {
+              		$today            =       date("d/m/Y");
+			    	$adminFee     	  =   	  (double)$adminFee;
+			    	updateAdminFee($today, $adminFee, $planExchange, $idTransaction);
+			      }
+              }
                 removeData('user-exchange-'.A_USER_CHAT_ID);
                 removeData('plan-exchange-'.A_USER_CHAT_ID);
                 removeData('coin-exchange-'.A_USER_CHAT_ID);
+                removeData('token-exchange-'.A_USER_CHAT_ID);
                 setData('step-exchange-'.A_USER_CHAT_ID,'0');
-              }
               
             } else {
               $sendMessage->chat_id   =   A_USER_CHAT_ID;
@@ -450,8 +481,10 @@ $stepExchange           =   getData('step-exchange-'.A_USER_CHAT_ID);
               removeData('user-exchange-'.A_USER_CHAT_ID);
               removeData('plan-exchange-'.A_USER_CHAT_ID);
               removeData('coin-exchange-'.A_USER_CHAT_ID);
+              removeData('token-exchange-'.A_USER_CHAT_ID);
               setData('step-exchange-'.A_USER_CHAT_ID,'0');
             }
+            setData('step-exchange-'.A_USER_CHAT_ID,'0');
           break;
         default:
           # code...
@@ -481,17 +514,39 @@ $getQueryType       =   $arrayQueryData[0];
       $editMessageText->chat_id                       =     $queryUserId;
       $editMessageText->message_id                    =     $querymsgId;
       $editMessageText->text                          =     "Vui lòng chọn yêu cầu cho Plan ".strtoupper($arrayQueryData[1]);
-      $inlineKeyboard = new Markup([
+      $checkDaily 									  =		 checkDailyWithdraw($arrayQueryData[1]);
+      if($checkDaily  == 'daily') {
+      	$inlineKeyboard = new Markup([
           'inline_keyboard' => [
-              [
-                  ['text' => '✅ Có', 'callback_data' => 'week_'.$arrayQueryData[1].'_yes'],
-                  ['text' => '❌ Không', 'callback_data' => 'week_'.$arrayQueryData[1].'_no'],
-              ],
-              [
-                  ['text' => '🔙 Quay Lại', 'callback_data' => 'back_week'],
-              ],
-          ]
-      ]);
+	              [
+	              	  ['text' => '💵 Rút Tuần', 'callback_data' => 'week_'.$arrayQueryData[1].'_check'],
+	                  ['text' => '✅ Có', 'callback_data' => 'week_'.$arrayQueryData[1].'_yes'],
+	                  ['text' => '❌ Không', 'callback_data' => 'week_'.$arrayQueryData[1].'_no'],
+	              ],
+	              [
+	              	  ['text' => '💵 Rút Ngày', 'callback_data' => 'daily_'.$arrayQueryData[1].'_check'],
+	              	  ['text' => '✅ Có', 'callback_data' => 'daily_'.$arrayQueryData[1].'_yes'],
+	                  ['text' => '❌ Không', 'callback_data' => 'daily_'.$arrayQueryData[1].'_no'],
+	              ],
+	              [
+	                  ['text' => '🔙 Quay Lại', 'callback_data' => 'back_week'],
+	              ],
+	          ]
+	      ]);
+      } else {
+      	$inlineKeyboard = new Markup([
+          'inline_keyboard' => [
+	              [
+	                  ['text' => '✅ Có', 'callback_data' => 'week_'.$arrayQueryData[1].'_yes'],
+	                  ['text' => '❌ Không', 'callback_data' => 'week_'.$arrayQueryData[1].'_no'],
+	              ],
+	              [
+	                  ['text' => '🔙 Quay Lại', 'callback_data' => 'back_week'],
+	              ],
+	          ]
+	      ]);
+      }
+
       $editMessageText->reply_markup                  =     $inlineKeyboard;
 
       $messageCorrectionPromise                       =     $tgLog->performApiRequest($editMessageText);
@@ -517,8 +572,45 @@ $getQueryType       =   $arrayQueryData[0];
 
       $messageCorrectionPromise                       =     $tgLog->performApiRequest($editMessageText);
       break; // End yêu cầu rút tháng
+    case 'daily':
+      switch ($arrayQueryData[2]) {
+      	case 'check':
+          $answerQueryText                            =     checkStatusDailyRequest($queryUserId, $arrayQueryData[1], 'daily');
+          $answerCallbackQuery                        =     new AnswerCallbackQuery();
+          $answerCallbackQuery->callback_query_id     =     $queryid;
+          $answerCallbackQuery->show_alert            =     true;
+          $answerCallbackQuery->text                  =     $answerQueryText;
+          $messageCorrectionPromise                   =     $tgLog->performApiRequest($answerCallbackQuery);
+          break;
+        case 'yes':
+          $answerQueryText                            =     updateRequestCoin($queryUserId, $arrayQueryData[1], 'có', 'daily');
+          $answerCallbackQuery                        =     new AnswerCallbackQuery();
+          $answerCallbackQuery->callback_query_id     =     $queryid;
+          $answerCallbackQuery->show_alert            =     true;
+          $answerCallbackQuery->text                  =     $answerQueryText;
+          $messageCorrectionPromise                   =     $tgLog->performApiRequest($answerCallbackQuery);
+          break;
+        
+        case 'no':
+          $answerQueryText                            =     updateRequestCoin($queryUserId, $arrayQueryData[1], 'không', 'daily');
+          $answerCallbackQuery                        =     new AnswerCallbackQuery();
+          $answerCallbackQuery->callback_query_id     =     $queryid;
+          $answerCallbackQuery->show_alert            =     true;
+          $answerCallbackQuery->text                  =     $answerQueryText;
+          $messageCorrectionPromise                   =     $tgLog->performApiRequest($answerCallbackQuery);
+          break;
+      }
+      break; // End Yêu Cầu Tái Rút Tuần  
     case 'week':
       switch ($arrayQueryData[2]) {
+      	case 'check':
+          $answerQueryText                            =     checkStatusDailyRequest($queryUserId, $arrayQueryData[1], 'weekly');
+          $answerCallbackQuery                        =     new AnswerCallbackQuery();
+          $answerCallbackQuery->callback_query_id     =     $queryid;
+          $answerCallbackQuery->show_alert            =     true;
+          $answerCallbackQuery->text                  =     $answerQueryText;
+          $messageCorrectionPromise                   =     $tgLog->performApiRequest($answerCallbackQuery);
+          break;
         case 'yes':
           $answerQueryText                            =     updateRequestCoin($queryUserId, $arrayQueryData[1], 'có', 'week');
           $answerCallbackQuery                        =     new AnswerCallbackQuery();
@@ -613,41 +705,6 @@ $getQueryType       =   $arrayQueryData[0];
           break;
       }
       break; // End Back Button
-    case 'exchange':
-      switch ($arrayQueryData[1]) {
-        case 'yes':
-            $userExchange           =   strtolower(getData('user-exchange-'.$queryUserId));
-            $planExchange           =   strtoupper(getData('plan-exchange-'.$queryUserId));
-            $coinExchange           =   getData('coin-exchange-'.$queryUserId);
-            $coinWithFee            =   $coinExchange - ($coinExchange * COIN_FEE);
-            $getUserRequest         =   getCurrentUser($queryUserId);
-            $emailUserSend          =   strtolower(getUserEmail($getUserRequest));
-              $editMessageText                                =     new EditMessageText();
-              $editMessageText->chat_id                       =     $queryUserId;
-              $editMessageText->message_id                    =     $querymsgId;
-              $editMessageText->text                          =     "Chúng tôi đã gửi code xác nhận giao dịch của bạn qua email, vui lòng nhập code dưới đây: (Lưu ý: Code có hiệu lực trong vòng 5 phút) ";
-              $messageCorrectionPromise                       =     $tgLog->performApiRequest($editMessageText);
-              setData('step-exchange-'.$queryUserId,'4');
-              sendConfirmExchange($queryUserId, $emailUserSend, $userExchange, $coinWithFee, $planExchange);
-          break;
-        case 'no':
-          
-          $editMessageText                                =     new EditMessageText();
-          $editMessageText->chat_id                       =     $queryUserId;
-          $editMessageText->message_id                    =     $querymsgId;
-          $editMessageText->text                          =     "Yêu cầu chuyển coin của bạn đã bị hủy, vui lòng nhấn Chuyển Coin để thử lại";
-          $messageCorrectionPromise                       =     $tgLog->performApiRequest($editMessageText);
-          removeData('user-exchange-'.$queryUserId);
-          removeData('plan-exchange-'.$queryUserId);
-          removeData('coin-exchange-'.$queryUserId);
-          setData('step-exchange-'.$queryUserId,'0');
-          break;
-        default:
-          # code...
-          break;
-      }
-      break; // End Confirm Exchange
-
     default:
       # code...
       break;
