@@ -89,11 +89,28 @@ function getGoogleDocUser() {
 
     $resultArray 	=	array();
     foreach ($arrayData as $key => $value) {
-    	$resultArray[$key]['username'] 		=		$value['0'];
-    	$resultArray[$key]['password'] 		=		$value['1'];
-    	$resultArray[$key]['ho_ten'] 		=		$value['2'];
-    	$resultArray[$key]['facebook'] 		=		$value['3'];
-    	for($i = 0; $i < count($value); $i++) {
+    	$resultArray[$key]['username'] 		    =		$value['0'];
+    	$resultArray[$key]['password'] 		    =		$value['1'];
+    	$resultArray[$key]['ho_ten'] 		    =		$value['2'];
+    	//$resultArray[$key]['facebook'] 		    =		$value['3'];
+        if(isset($value['3']) && !empty($value['3'])) {
+            $resultArray[$key]['facebook']       =       $value['3'];
+        } else {
+            $resultArray[$key]['facebook']       =       '';
+        }
+
+        if(isset($value['4']) && !empty($value['4'])) {
+            $resultArray[$key]['telegram_id']       =       $value['4'];
+        } else {
+            $resultArray[$key]['telegram_id']       =       0;
+        }
+        
+        if(isset($value['5']) && !empty($value['5'])) {
+            $resultArray[$key]['email']       =       $value['5'];
+        } else {
+            $resultArray[$key]['email']       =       '';
+        }
+    	/*for($i = 0; $i < count($value); $i++) {
     		if($i < 4 || empty($value[$i])) {
     			$resultArray[$key]['telegram_id'] 		=		0;
     			continue;
@@ -102,8 +119,11 @@ function getGoogleDocUser() {
     				break;
     			
     		}
-    	}
+    	}*/
     }
+    /*echo '<pre>';
+    print_r($resultArray);
+    echo '</pre>';*/
 
     return $resultArray;
 }
@@ -114,13 +134,13 @@ function getGoogleDocPlans() {
 
     $service_account_file = 'client_services.json';
 
-    global $sheetBangTinh;
+    global $sheetDuAn;
 
     //$spreadsheet_id = '1m_zf3zUJa4iHemxzDSHPJ9KHhN0868ShNoeqc7tQ-kQ';
-    $spreadsheet_id = $sheetBangTinh; // Sheet Bảng Tính
+    $spreadsheet_id = $sheetDuAn; // Sheet Bảng Tính
 
     //$spreadsheet_range = 'Buzz kì 6';
-    $spreadsheet_range = "user";
+    //$spreadsheet_range = "user";
 
     $arrayData  = array();
 
@@ -128,19 +148,32 @@ function getGoogleDocPlans() {
 
     putenv('GOOGLE_APPLICATION_CREDENTIALS=' . $service_account_file);
 
-    $client = new Google_Client();
+    $client       = new Google_Client();
     $client->useApplicationDefaultCredentials();
     $client->addScope(Google_Service_Sheets::SPREADSHEETS_READONLY);
-    $service = new Google_Service_Sheets($client);
-    $result = $service->spreadsheets_values->get($spreadsheet_id, $spreadsheet_range);
-    $arrayData = $result->getValues(); // Mang du lieu
-    for($i = 0; $i < count($arrayData[0]); $i++) {
+    $service      = new Google_Service_Sheets($client);
+    $result       = $service->spreadsheets->get($spreadsheet_id);
+    $sheets       =       $result->getSheets();
+    foreach($sheets as $sheet) {
+        $title       =  strtolower($sheet->properties->title);
+        if($title == 'bullcoin') {
+            continue;
+        } else {
+            $arrayData[] = $title;
+        }
+        
+    }   
+    //$arrayData = $result->getValues(); // Mang du lieu
+    /*for($i = 0; $i < count($arrayData[0]); $i++) {
     	if($i < 4) {
     		unset($arrayData[0][$i]);
     	}
     }
-    $arrayData[0] 	=	array_values($arrayData[0]);
-    return $arrayData[0];
+    $arrayData[0] 	=	array_values($arrayData[0]);*/
+    /*echo '<pre>';
+    print_r($arrayData);
+    echo '</pre>';*/
+    return $arrayData;
 }
 
 // Lấy thông tin chi tiết các plan của user đang tham gia
@@ -312,8 +345,8 @@ function getProfitDetail($tenPlan) {
     	}
     }
     $arrayData 		=	array_values($arrayData);
-    array_pop($arrayData);
-    
+    //array_pop($arrayData);
+
     $arrayResult 	=	array();
     if(count($arrayData[0]) > 8) {
         foreach ($arrayData as $key => $value) {
@@ -328,7 +361,7 @@ function getProfitDetail($tenPlan) {
                         if($k < 8) {
                             continue;
                         } else {
-                            $arrayResult[$key][$v]  =   $value[$k];
+                            @$arrayResult[$key][$v]  =   $value[$k];
                         }
                     }
                 }
@@ -385,13 +418,14 @@ function updateTableUser() {
 	$result 	= 	'';
 	$arrayUser 	=	getGoogleDocUser();
 	foreach($arrayUser as $key => $value) {
-		$queryUser = $db->findByCol('users','username', $value['username']);
-		if($queryUser == true) {
+		//$queryUser = $db->findByCol('users','username', $value['username']);
+        $queryUser = $db->query("SELECT * FROM :table WHERE `username` LIKE ':username'",['table'=>'users','username'=>$value['username']])->fetch();
+		if(!empty($queryUser)) {
 			
-			$result = $db->update('users',['password'=>$value['password'], 'ho_ten'=>$value['ho_ten'], 'facebook'=>$value['facebook'], 'telegram_id'=>$value['telegram_id']],' username = "'.$value["username"].'"');
+			$result = $db->update('users',['password'=>$value['password'], 'ho_ten'=>$value['ho_ten'], 'facebook'=>$value['facebook'], 'telegram_id'=>$value['telegram_id'],'email'=>$value['email']],' username = "'.$value["username"].'"');
 			
 		} else {
-			$result = $db->insert('users',['username'=>trim($value['username']), 'password'=>$value['password'], 'ho_ten'=>$value['ho_ten'], 'facebook'=>$value['facebook'], 'telegram_id'=>$value['telegram_id']]);
+			$result = $db->insert('users',['username'=>trim($value['username']), 'password'=>$value['password'], 'ho_ten'=>$value['ho_ten'], 'facebook'=>$value['facebook'], 'telegram_id'=>$value['telegram_id'], 'email'=>$value['email']]);
 		}
 	}
 	if($result == true) {

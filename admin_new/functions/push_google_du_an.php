@@ -39,9 +39,9 @@ function replace_key($arr, $oldkey, $newkey) {
 function getDbUser() {
     $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
     $arrayResult    =   array();
-    $queryUser = $db->query("SELECT `username`, `password`, `ho_ten`, `facebook` FROM :table",['table'=>'users'])->fetch_all();
+    $queryUser = $db->query("SELECT `username`, `password`, `ho_ten`, `facebook`, `telegram_id`, `email` FROM :table",['table'=>'users'])->fetch_all();
     
-    foreach($queryUser as $key => $value) {
+    /*foreach($queryUser as $key => $value) {
         $queryChitiet   =   $db->query("SELECT c.`username`, c.`ten_plan`, u.`telegram_id` FROM `chitietplan` AS c INNER JOIN `users` AS u ON c.`username` = u.`username` WHERE c.`username` = ':username' AND c.`so_dao_pos` NOT LIKE '0.00000%'",['table'=>'users', 'username'=>$value['username']])->fetch_all();
         foreach($queryChitiet as $k => $v) {
             if($v['telegram_id'] == 0) {
@@ -66,7 +66,7 @@ function getDbUser() {
             }
             
         }
-    }
+    }*/
     
     return $queryUser;
     $db->close();
@@ -203,7 +203,7 @@ function getDataChiaLai($userName, $tenPlan) {
   $db->close();
 }
 
-function updatePlansSheet($tenPlan, $arrayUpdate) {
+function updatePlansSheet($tenPlan, $arrayUpdate, $updateType = 'all') {
     require 'vendor/autoload.php';
 
     global $sheetDuAn;
@@ -227,61 +227,159 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
     $arrayGooglePlan    =   getGooglePlanData($tenPlan);
     $totalRows          =   count($arrayGooglePlan);
 
-    
-
-    foreach($arrayUpdate as $key => $value) {
-      foreach($arrayGooglePlan as $a => $b) {
-        if(in_array($value['username'], $b)) {
-            $updateArray  =   array();
-          foreach($value as $k => $v) {
-            if($k == 'username' || $k == 'ho_ten' || $k == 'so_dao_pos' || $k == 'so_dau_tu') {
-              if($k == 'so_dao_pos' || $k == 'so_dau_tu') {
-                  $v  =   doubleval($v);
+    if($updateType == 'all') {
+      foreach($arrayUpdate as $key => $value) {
+        foreach($arrayGooglePlan as $a => $b) {
+          if(in_array($value['username'], $b)) {
+              $updateArray  =   array();
+            foreach($value as $k => $v) {
+              if($k == 'username' || $k == 'ho_ten' || $k == 'so_dao_pos') {
+                if($k == 'so_dao_pos') {
+                    $v  =   doubleval($v);
+                }
+                  $updateArray["values"][]     =   $v;
+              } else {
+                continue;
               }
-                $updateArray["values"][]     =   $v;
-            } else {
-              continue;
             }
+            $valueRange->setValues($updateArray);
+            $conf = ["valueInputOption" => "RAW"];
+            $updateRange  =   $spreadsheet_range.'!b'.($a+11).':e'.($a+11);
+            $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+            $arrayKeys[]    =   $key;
+            unset($updateArray["values"]);
+            sleep(1);
+            $status   =   true;
+          } else {
+              continue;
           }
-          $valueRange->setValues($updateArray);
-          $conf = ["valueInputOption" => "RAW"];
-          $updateRange  =   $spreadsheet_range.'!b'.($a+11).':e'.($a+11);
-          $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
-          $arrayKeys[]    =   $key;
-          unset($updateArray["values"]);
-          sleep(1);
-          $status   =   true;
-        } else {
-            continue;
+        }
+      }
+
+      // Facebook và Số Ví
+      foreach($arrayUpdate as $key => $value) {
+        foreach($arrayGooglePlan as $a => $b) {
+          if(in_array($value['username'], $b)) {
+              $updateArray  =   array();
+            foreach($value as $k => $v) {
+              if($k == 'facebook' || $k == 'so_vi') {
+                  $updateArray["values"][]     =   $v;
+              } else {
+                continue;
+              }
+            }
+            $valueRange->setValues($updateArray);
+            $conf = ["valueInputOption" => "RAW"];
+            $updateRange  =   $spreadsheet_range.'!g'.($a+11).':h'.($a+11);
+            $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+            unset($updateArray["values"]);
+            sleep(1);
+            $status   =   true;
+          } else {
+              continue;
+          }
+        }
+      }
+    } else if($updateType == 'ho_ten') { // Họ Tên
+      foreach($arrayUpdate as $key => $value) {
+        foreach($arrayGooglePlan as $a => $b) {
+          if(in_array($value['username'], $b)) {
+              $updateArray  =   array();
+            foreach($value as $k => $v) {
+              if($k == 'ho_ten') {
+                  $updateArray["values"][]     =   $v;
+              } else {
+                continue;
+              }
+            }
+            $valueRange->setValues($updateArray);
+            $conf = ["valueInputOption" => "RAW"];
+            $updateRange  =   $spreadsheet_range.'!c'.($a+11);
+            $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+            $arrayKeys[]    =   $key;
+            unset($updateArray["values"]);
+            sleep(1);
+            $status   =   true;
+          } else {
+              continue;
+          }
+        }
+      }
+    } else if($updateType == 'so_dao_pos') { // Số Đào Pos
+      foreach($arrayUpdate as $key => $value) {
+        foreach($arrayGooglePlan as $a => $b) {
+          if(in_array($value['username'], $b)) {
+              $updateArray  =   array();
+            foreach($value as $k => $v) {
+              if($k == 'so_dao_pos') {
+                  $v  =   doubleval($v);
+                  $updateArray["values"][]     =   $v;
+              } else {
+                continue;
+              }
+            }
+            $valueRange->setValues($updateArray);
+            $conf = ["valueInputOption" => "RAW"];
+            $updateRange  =   $spreadsheet_range.'!d'.($a+11);
+            $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+            $arrayKeys[]    =   $key;
+            unset($updateArray["values"]);
+            sleep(1);
+            $status   =   true;
+          } else {
+              continue;
+          }
+        }
+      }
+    } else if($updateType == 'facebook') { // Facebook
+      foreach($arrayUpdate as $key => $value) {
+        foreach($arrayGooglePlan as $a => $b) {
+          if(in_array($value['username'], $b)) {
+              $updateArray  =   array();
+            foreach($value as $k => $v) {
+              if($k == 'facebook') {
+                  $updateArray["values"][]     =   $v;
+              } else {
+                continue;
+              }
+            }
+            $valueRange->setValues($updateArray);
+            $conf = ["valueInputOption" => "RAW"];
+            $updateRange  =   $spreadsheet_range.'!g'.($a+11);
+            $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+            unset($updateArray["values"]);
+            sleep(1);
+            $status   =   true;
+          } else {
+              continue;
+          }
+        }
+      }
+    } else if($updateType == 'so_vi') { // Số Ví
+      foreach($arrayUpdate as $key => $value) {
+        foreach($arrayGooglePlan as $a => $b) {
+          if(in_array($value['username'], $b)) {
+              $updateArray  =   array();
+            foreach($value as $k => $v) {
+              if($k == 'so_vi') {
+                  $updateArray["values"][]     =   $v;
+              } else {
+                continue;
+              }
+            }
+            $valueRange->setValues($updateArray);
+            $conf = ["valueInputOption" => "RAW"];
+            $updateRange  =   $spreadsheet_range.'!h'.($a+11);
+            $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
+            unset($updateArray["values"]);
+            sleep(1);
+            $status   =   true;
+          } else {
+              continue;
+          }
         }
       }
     }
-
-    // Facebook và Số Ví
-    foreach($arrayUpdate as $key => $value) {
-      foreach($arrayGooglePlan as $a => $b) {
-        if(in_array($value['username'], $b)) {
-            $updateArray  =   array();
-          foreach($value as $k => $v) {
-            if($k == 'facebook' || $k == 'so_vi') {
-                $updateArray["values"][]     =   $v;
-            } else {
-              continue;
-            }
-          }
-          $valueRange->setValues($updateArray);
-          $conf = ["valueInputOption" => "RAW"];
-          $updateRange  =   $spreadsheet_range.'!g'.($a+11).':h'.($a+11);
-          $service->spreadsheets_values->update($spreadsheet_id, $updateRange, $valueRange, $conf);
-          unset($updateArray["values"]);
-          sleep(1);
-          $status   =   true;
-        } else {
-            continue;
-        }
-      }
-    }
-
     /*// Update Ngay Chia Lai
     foreach($arrayUpdate as $key => $value) {
             $updateArray    =   array();
@@ -411,7 +509,7 @@ function updatePlansSheet($tenPlan, $arrayUpdate) {
     return $status;
 }
 
-function callUpdatePlans($tenPlan) {
+function callUpdatePlans($tenPlan, $updateType = 'all') {
     $status   = false;
     //$arrayPlans  =   getDbPlans();
     /*foreach($arrayPlans as $key => $value) {

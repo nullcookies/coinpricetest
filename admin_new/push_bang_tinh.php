@@ -83,8 +83,13 @@
                     <?php
                       $result   =   '';
                       if(isset($_GET['import_plan'])) {
-                        $trangThai  = callUpdatePlans($_GET['import_plan']);
-                        $result     = '<div class="alert alert-info" role="alert">'.$trangThai.'</div>';
+                        if(isset($_GET['other_request'])) {
+                          $trangThai  = callUpdatePlans($_GET['import_plan'], $_GET['other_request']);
+                          $result     = '<div class="alert alert-info" role="alert">'.$trangThai.'</div>';
+                        } else {
+                          $trangThai  = callUpdatePlans($_GET['import_plan'], 'all');
+                          $result     = '<div class="alert alert-info" role="alert">'.$trangThai.'</div>';
+                        }
                       }
                       $arrayPlans   = getDbPlans();
                       foreach($arrayPlans as $key => $value) :
@@ -92,7 +97,22 @@
                     <tr>
                       <td class="text-center"><?php echo $key+2; ?></td>
                       <td class="text-center">Bảng <?php echo ucfirst($value['ten_plan']); ?></td>
-                      <td class="text-center"><a class="btn btn-primary" href="<?php echo siteUrl(); ?>/admin_new/push_bang_tinh.php?import_plan=<?php echo $value['ten_plan']; ?>">Cập Nhật</a></td>
+                      <td class="text-center">
+                        <a class="btn btn-primary" href="<?php echo siteUrl(); ?>/admin_new/push_bang_tinh.php?import_plan=<?php echo $value['ten_plan']; ?>">Cập Nhật Tất Cả</a>
+                        <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+                          <div class="btn-group" role="group">
+                            <button id="btnGroupDrop1" type="button" class="btn btn-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                              Cập Nhật Khác
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
+                              <a class="dropdown-item" href="<?php echo siteUrl(); ?>/admin_new/push_bang_tinh.php?import_plan=<?php echo $value['ten_plan']; ?>&other_request=ho_ten">Họ Tên</a>
+                              <a class="dropdown-item" href="<?php echo siteUrl(); ?>/admin_new/push_bang_tinh.php?import_plan=<?php echo $value['ten_plan']; ?>&other_request=so_dao_pos">Số Đào PoS</a>
+                              <a class="dropdown-item" href="<?php echo siteUrl(); ?>/admin_new/push_bang_tinh.php?import_plan=<?php echo $value['ten_plan']; ?>&other_request=so_vi">Số Ví</a>
+                              <a class="dropdown-item" href="<?php echo siteUrl(); ?>/admin_new/push_bang_tinh.php?import_plan=<?php echo $value['ten_plan']; ?>&other_request=tai_rut">Tái/Rút</a>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
                       <td class="text-center"> 
                       <?php if(isset($_GET['import_plan']) && $_GET['import_plan'] == $value['ten_plan']) { echo $result; } ?>
                       </td>

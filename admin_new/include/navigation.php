@@ -40,9 +40,9 @@
             <li>
               <a href="push_bang_tinh.php"><i class="fa fa-fw fa-calculator"></i> Push Bảng Tính</a>
             </li>
-            <li>
+            <!-- <li>
               <a href="push_tai_rut.php"><i class="fa fa-fw fa-refresh"></i> Push Tái/Rút</a>
-            </li>
+            </li> -->
           </ul>
         </li>
         <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Link">

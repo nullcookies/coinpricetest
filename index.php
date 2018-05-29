@@ -513,7 +513,7 @@ $getQueryType       =   $arrayQueryData[0];
       $editMessageText                                =     new EditMessageText();
       $editMessageText->chat_id                       =     $queryUserId;
       $editMessageText->message_id                    =     $querymsgId;
-      $editMessageText->text                          =     "Vui lòng chọn yêu cầu cho Plan ".strtoupper($arrayQueryData[1]);
+      $editMessageText->text                          =     "Vui lòng chọn yêu cầu cho Plan ".strtoupper($arrayQueryData[1])."\nGhi chú:\n- Chọn 'Có' để tái đầu tư\n- Chọn 'No' để rút lãi theo tuần";
       $checkDaily 									  =		 checkDailyWithdraw($arrayQueryData[1]);
       if($checkDaily  == 'daily') {
       	$inlineKeyboard = new Markup([
@@ -555,7 +555,7 @@ $getQueryType       =   $arrayQueryData[0];
       $editMessageText                                =     new EditMessageText();
       $editMessageText->chat_id                       =     $queryUserId;
       $editMessageText->message_id                    =     $querymsgId;
-      $editMessageText->text                          =     "Vui lòng chọn yêu cầu cho Plan ".strtoupper($arrayQueryData[1]);
+      $editMessageText->text                          =     "Vui lòng chọn yêu cầu cho Plan ".strtoupper($arrayQueryData[1])."\nGhi chú:\n- Chọn 'Rút Lãi' để rút lãi vào cuối tháng\n- Chọn 'Rút Gốc' để rút gốc vào cuối tháng\n- Chọn 'Hủy Yêu Cầu' để tiếp tục đầu tư";
       $inlineKeyboard = new Markup([
           'inline_keyboard' => [
               [
