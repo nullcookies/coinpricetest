@@ -1,4 +1,4 @@
 conf.php
 database/config.inc.php
-admin/database/config.inc.php
-admin/settings.php
+admin_new/database/config.inc.php
+admin_new/settings.php
