@@ -51,6 +51,12 @@
             <span class="nav-link-text">Disable Change Wallet</span>
           </a>
         </li>
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Link">
+          <a class="nav-link" href="change_add_coin.php">
+            <i class="fa fa-fw fa-sign-in"></i>
+            <span class="nav-link-text">Disable Change Add Coin</span>
+          </a>
+        </li>
       </ul>
       <ul class="navbar-nav sidenav-toggler">
         <li class="nav-item">

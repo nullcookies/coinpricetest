@@ -33,14 +33,16 @@ $nutYeuCau 	=	array(
 		'💰 Yêu Cầu Rút Coin', 	// $nutYeuCau[1]
 		'📤 Yêu Cầu Cuối Tháng', // $nutYeuCau[2]
 		'🔁 Chuyển Coin', // $nutYeuCau[3]
-		'⚙️ Chỉnh Sửa Thông Tin' // $nutYeuCau[4]
+		'⚙️ Chỉnh Sửa Thông Tin',
+		'✍️ Đăng Ký Thêm Coin' // $nutYeuCau[4]
 	);
 
 $nutChinhSua 	=	array(
-		'📥 Sửa Số Ví', // $nutChinhSua[0]
-		'📧 Sửa Email', // $nutChinhSua[1]
-		'🛠 Sửa Họ Tên', // $nutChinhSua[2]
-		'🛠 Sửa Facebook', // $nutChinhSua[3]
-		'⚙️ Xem Thông Tin', // $nutChinhSua[4]
-		'🔙 Quay Lại' // $nutChinhSua[5]
+	 	'🔏 Đổi Password', //$nutChinhSua[0]
+		'📥 Sửa Số Ví', // $nutChinhSua[1]
+		'📧 Sửa Email', // $nutChinhSua[2]
+		'🛠 Sửa Họ Tên', // $nutChinhSua[3]
+		'🛠 Sửa Facebook', // $nutChinhSua[4]
+		'⚙️ Xem Thông Tin', // $nutChinhSua[5]
+		'🔙 Quay Lại' // $nutChinhSua[6]
 	);

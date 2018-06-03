@@ -35,6 +35,32 @@ function getDbPlans() {
     $db->close();
 }
 
+function getPlansActive() {
+    $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+    $arrayPlans     =   array();
+    $queryPlan = $db->query("SELECT `ten_plan` FROM :table WHERE `ten_plan` != 'bullcoin' AND `active` = 1",['table'=>'plans'])->fetch_all();
+
+    return $queryPlan;
+    $db->close();
+}
+
+function getStatusPlans($tenPlan) {
+    $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+    $arrayPlans     =   array();
+    $queryPlan = $db->query("SELECT `active` FROM :table WHERE `ten_plan` != 'bullcoin' AND `ten_plan` = ':ten_plan'",['table'=>'plans', 'ten_plan'=>$tenPlan])->fetch();
+
+    return $queryPlan['active'];
+    $db->close();
+}
+
+// Cho phép sửa số ví hay không
+function requestActivePlan($tenPlan, $request) {
+    $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+    $result = $db->update('plans',['active'=>$request]," ten_plan = '".$tenPlan."'");
+    return $result;
+    $db->close();
+}
+
 // Cho phép sửa số ví hay không
 function requestActiveWallet($request) {
     $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);

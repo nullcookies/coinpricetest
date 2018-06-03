@@ -31,8 +31,8 @@ function sendMail($email, $name, $code) {
 
         $mail->isHTML(true);
 
-        $mail->Subject = "Code Liza - $today";
-        $mail->Body    = "Xin chào $name ! <br /> Code lãi liza ngày $today của bạn là: <b>$code</b><br />Nếu có gì thắc mắc xin vui lòng gửi mail về email: ta.team.rb@gmail.com <br />Xin cám ơn !";
+        $mail->Subject = "Code BTC bán limbo";
+        $mail->Body    = "Xin chào $name ! <br /> Code bán limbo của bạn là: <b>$code</b><br />Nếu có gì thắc mắc xin vui lòng gửi mail về email: ta.team.rb@gmail.com <br />Xin cám ơn !";
 
         if (!$mail->send()) {
             echo 'Message could not be sent.';

@@ -18,6 +18,12 @@ function removeData($id){
     apc_delete ($id);
 }
 
+function clearCache() {
+  apc_clear_cache();
+  apc_clear_cache('user');
+  apc_clear_cache('opcode');
+}
+
 function checkNgayChiaLai(){
 	$result 	=	false;
 	date_default_timezone_set('Asia/Ho_Chi_Minh');
@@ -28,11 +34,19 @@ function checkNgayChiaLai(){
 	return $result;
 }
 
+function checkSendMailTimes($telegramId) {
+  $currentUser        =       getCurrentUser($telegramId);
+  $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $arrayPlans = $db->query("SELECT `sendmail_times` FROM :table WHERE `username` = ':username'",['table'=>'users', 'username' => $currentUser])->fetch();
+  $db->close();
+  return $arrayPlans['sendmail_times'];  
+}
+
 // Lấy tên các plan hiện tại trong database
 function getCurrentPlans() {
   $arrayPlans   =   array();
   $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
-  $arrayPlans = $db->query("SELECT :ten_plan FROM :table",['table'=>'plans', 'ten_plan' => 'ten_plan'])->fetch_all();
+  $arrayPlans = $db->query("SELECT :ten_plan FROM :table WHERE `active` = 1",['table'=>'plans', 'ten_plan' => 'ten_plan'])->fetch_all();
   $db->close();
   return $arrayPlans;
 }
@@ -66,6 +80,13 @@ function getTotalCoins($tenPlan) {
   $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
   $arrayData = $db->query("SELECT `tong_coin`, `ky_hieu_coin` FROM `plans` WHERE `ten_plan` = ':ten_plan'",[ 'ten_plan'=>$tenPlan])->fetch();
   return $arrayData;
+  $db->close();
+}
+
+function getKyHieuCoin($tenPlan) {
+  $db = new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $arrayData = $db->query("SELECT `ky_hieu_coin` FROM `plans` WHERE `ten_plan` = ':ten_plan'",[ 'ten_plan'=>$tenPlan])->fetch();
+  return $arrayData['ky_hieu_coin'];
   $db->close();
 }
 
@@ -198,9 +219,15 @@ function insertUserInfo($telegramId, $infoText, $type, $tenPlan = null) {
   $db           =   new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
   $currentUser  =   getCurrentUser($telegramId);
   if($type == 'email') {
-    $result = $db->update('users',['email'=> $infoText]," username = '$currentUser'");
-    if($result  ==   true) {
-      $result   =   'Cập nhật Email thành công';
+    $emailChange    =   strtolower($infoText);
+    $queryCheck     =       $db->findByCol('users','email', $emailChange);
+    if(!empty($queryCheck)) {
+      $result   =   'Email này đã được đăng ký, vui lòng nhấn nút sửa Email khác !';
+    } else {
+      $result = $db->update('users',['email'=> $emailChange]," username = '$currentUser'");
+      if($result  ==   true) {
+        $result   =   'Cập nhật Email thành công';
+      }
     }
   }
 
@@ -894,6 +921,151 @@ function updateAdminFee($ngayNhan, $soCoinNhan, $tenCoin, $idGiaoDich) {
     $result         = $db->update('chitietplan',['so_dao_pos'=> $userCoin]," username LIKE '".$value['username']."' AND ten_plan = '".strtolower($tenCoin)."'");
     //sendEmailToAdmin($value['username'], $coinAdminGet, $tenCoin, $idGiaoDich);
   }
+  return $result;
+  $db->close();
+}
+
+//Gửi Mail Thêm Coin
+function sendEmailAddCoin($userName, $soCoin, $tenCoin, $txtId) {
+  $mail                               =       new PHPMailer(true);
+  $result                             =       false;
+  $today                              =       date("d/m/Y H:i");
+  $userEmail                          =       getUserEmail($userName);
+  //$userFullName                       =       getFullName($userName);
+  $kyhieuCoin                         =       getKyHieuCoin($tenCoin);
+  $tenCoin                            =       strtoupper($tenCoin);
+  try {
+      $mail->SMTPOptions = array(
+      'ssl' => array(
+          'verify_peer' => false,
+          'verify_peer_name' => false,
+          'allow_self_signed' => true
+          )
+      );
+      $mail->isSMTP();
+      $mail->Host       =   'smtp.gmail.com';  //gmail SMTP server
+      $mail->SMTPAuth   =   true;
+      $mail->Username   =   'ta.team.rb@gmail.com';   //username
+      $mail->Password   =   'lyhxxnogvslxvfaz';   //password
+      //$mail->Username = 'ngtanthanh90@gmail.com';   //username
+      //$mail->Password = 'dthjhlqsogiadfmi';   //password
+      // dthjhlqsogiadfmi
+      $mail->SMTPSecure =   'ssl';
+      $mail->Port       =   465;                    //smtp port
+      $mail->CharSet    =   'UTF-8';
+      $mail->setFrom($userEmail, 'Yêu cầu thêm Coin - TeamTA Telegram Bot');
+      $mail->addAddress('ta.team.rb@gmail.com', 'Yêu cầu thêm Coin');
+
+      /*$mail->addAttachment(__DIR__ . '/attachment1.png');
+      $mail->addAttachment(__DIR__ . '/attachment2.jpg');*/
+
+      $mail->isHTML(true);
+
+      $mail->Subject = "Yêu cầu thêm coin từ user: ".$userName." vào ngày ".$today;
+      $mail->Body    = "Bạn vừa nhận được yêu cầu thêm coin từ user: <b>".$userName."</b><br />Tên Plan: <b>".$tenCoin."<b/><br />Số coin yêu cầu thêm: <b>".$soCoin." ".$kyhieuCoin."</b><br />Txtid: <b>".$txtId."</b><br />Xin cám ơn !";
+
+      if (!$mail->send()) {
+          echo 'Message could not be sent.';
+          echo 'Mailer Error: ' . $mail->ErrorInfo;
+      } else {
+          $result   =   true;
+      }
+  } catch (Exception $e) {
+      echo 'Message could not be sent.';
+      echo 'Mailer Error: ' . $mail->ErrorInfo;
+  }
+    return $result;
+}
+
+//Gửi Email Token thay đổi password
+function sendEmailChangePassword($telegramId, $password) {
+  $db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  
+  $mail                 =       new PHPMailer(true);
+  $result               =       false;
+  $today                =       date("Y-m-d H:i:s");
+  $currentUser          =       getCurrentUser($telegramId);
+  $userEmail            =       getUserEmail($currentUser);
+  $userFullName         =       getFullName($currentUser);
+  $tokenCode            =       createRandomToken();
+  $password             =       trim($password);
+  $db->update('users',['ngay_yeu_cau'=>$today,'token'=> $tokenCode]," username = '".$currentUser."'");
+  try {
+      $mail->SMTPOptions = array(
+      'ssl' => array(
+          'verify_peer' => false,
+          'verify_peer_name' => false,
+          'allow_self_signed' => true
+          )
+      );
+      $mail->isSMTP();
+      $mail->Host       =   'smtp.gmail.com';  //gmail SMTP server
+      $mail->SMTPAuth   =   true;
+      $mail->Username   =   'ta.team.rb@gmail.com';   //username
+      $mail->Password   =   'lyhxxnogvslxvfaz';   //password
+      //$mail->Username = 'ngtanthanh90@gmail.com';   //username
+      //$mail->Password = 'dthjhlqsogiadfmi';   //password
+      // dthjhlqsogiadfmi
+      $mail->SMTPSecure =   'ssl';
+      $mail->Port       =   465;                    //smtp port
+      $mail->CharSet    =   'UTF-8';
+      $mail->setFrom('ta.team.rb@gmail.com', 'TeamTA Telegram Bot');
+      $mail->addAddress($userEmail, $userFullName);
+
+      /*$mail->addAttachment(__DIR__ . '/attachment1.png');
+      $mail->addAttachment(__DIR__ . '/attachment2.jpg');*/
+
+      $mail->isHTML(true);
+
+      $mail->Subject = "Code xác nhận thay đổi Password";
+      $mail->Body    = "Xin chào ".$userFullName."<br />Bạn đang thực hiện yêu cầu thay đổi Password<br />Password yêu cầu thay đổi: <b>".$password."</b><br />Vui lòng nhập code dưới đây vào bot telegram để xác nhận việc chuyển coin: <b>".$tokenCode."</b><br />Lưu ý: <b>Code có hiệu lực trong vòng 5 phút, yêu cầu của bạn sẽ bị hủy nếu bạn nhập sai code</b><br /> Mọi thắc mắc xin gửi mail về: <a href='mailto:ta.team.rb@gmail.com'>ta.team.rb@gmail.com</a><br />Xin cám ơn !";
+
+      if (!$mail->send()) {
+          echo 'Message could not be sent.';
+          echo 'Mailer Error: ' . $mail->ErrorInfo;
+      } else {
+          $result   =   true;
+          $mail->ClearAllRecipients();
+      }
+  } catch (Exception $e) {
+      echo 'Message could not be sent.';
+      echo 'Mailer Error: ' . $mail->ErrorInfo;
+  }
+    return $result;
+  $db->close();
+}
+
+// Kiểm tra code xác nhận
+function checkConfirmPassword($telegramId, $confirmCode) {
+  $result   =   false;
+  $db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $currentUser          =       getCurrentUser($telegramId);
+  $confirmCode          =       trim($confirmCode);
+  $arrayQuery           =       $db->query("SELECT `id` FROM :table WHERE `username` LIKE ':username' AND `token` = ':token'",['table'=>'users','username'=> $currentUser, 'token' => $confirmCode])->fetch();
+
+  if(!empty($arrayQuery['id'])) {
+      $result   =   true;
+  } else {
+      //$db->update('users',['token'=> '']," username = '".$currentUser."'");
+  }
+  return $result;
+  $db->close();
+}
+
+function updateUserPassword($telegramId, $passwordUser) {
+  $result               =       false;
+  $db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $currentUser          =       getCurrentUser($telegramId);
+  $result               =       $db->update('users',['password'=>$passwordUser,'token'=> '']," username = '".$currentUser."'");
+  return $result;
+  $db->close();
+}
+
+function updateSendMailTimes($telegramId, $sendTimes) {
+  $result               =       false;
+  $db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+  $currentUser          =       getCurrentUser($telegramId);
+  $result               =       $db->update('users',['sendmail_times'=>$sendTimes]," username = '".$currentUser."'");
   return $result;
   $db->close();
 }
