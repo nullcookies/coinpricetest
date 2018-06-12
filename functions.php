@@ -308,8 +308,9 @@ function answerPlanDetail($telegramId, $queryData) {
 
     $arrayUser          = $db->query("SELECT `ho_ten` FROM `users` WHERE `username` = ':username'", ['username' => $currentUser])->fetch();
 
-    $arrayChiaLai        = $db->query("SELECT * FROM `chialai` WHERE `username` = ':username' AND `ten_plan` = ':current_plan' ORDER BY `ngay_chia_lai` DESC LIMIT 1", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();
-
+    //$arrayChiaLai        = $db->query("SELECT * FROM `chialai` WHERE `username` = ':username' AND `ten_plan` = ':current_plan' ORDER BY `ngay_chia_lai` DESC LIMIT 1", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();
+    //SELECT * FROM `chialai` WHERE `username` = 'tanthanh' AND `ten_plan` = 'apr-pos' ORDER BY STR_TO_DATE(ngay_chia_lai, '%d/%m/%Y') DESC LIMIT 1
+    $arrayChiaLai        = $db->query("SELECT * FROM `chialai` WHERE `username` = ':username' AND `ten_plan` = ':current_plan' ORDER BY STR_TO_DATE(ngay_chia_lai, '%d/%m/%Y') DESC LIMIT 1", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();
 
       $result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTên Đăng Ký: ".$arrayUser['ho_ten']."\nBalance: ".$arrayResult['so_dao_pos']." ".$arrayPlanCoins['ky_hieu_coin']."\nCổ Phần: ".$arrayResult['co_phan']."%\nLãi mới nhất ngày ".$arrayChiaLai['ngay_chia_lai'].": ".$arrayChiaLai['lai_coin'] . ' '.$arrayPlanCoins['ky_hieu_coin'];
   }
