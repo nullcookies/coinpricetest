@@ -15,14 +15,24 @@
  * the License.
  */
 
-/**
- * The "groups" collection of methods.
- * Typical usage is:
- *  <code>
- *   $cloudiotService = new Google_Service_CloudIot(...);
- *   $groups = $cloudiotService->groups;
- *  </code>
- */
-class Google_Service_CloudIot_Resource_ProjectsLocationsGroups extends Google_Service_Resource
+class Google_Service_Vision_AsyncBatchAnnotateFilesRequest extends Google_Collection
 {
+  protected $collection_key = 'requests';
+  protected $requestsType = 'Google_Service_Vision_AsyncAnnotateFileRequest';
+  protected $requestsDataType = 'array';
+
+  /**
+   * @param Google_Service_Vision_AsyncAnnotateFileRequest
+   */
+  public function setRequests($requests)
+  {
+    $this->requests = $requests;
+  }
+  /**
+   * @return Google_Service_Vision_AsyncAnnotateFileRequest
+   */
+  public function getRequests()
+  {
+    return $this->requests;
+  }
 }

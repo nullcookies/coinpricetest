@@ -8,6 +8,8 @@
 	  "php": ">=5.5",
       "longman/telegram-bot": "*",
       "php-telegram-bot/inline-keyboard-pagination": "^1.0.0",
-      "php-telegram-bot/telegram-bot-manager": "*"
+      "php-telegram-bot/telegram-bot-manager": "*",
+      "retrinko/ini": "*",
+      "phpmailer/phpmailer": "~6.0"
 	}
 }

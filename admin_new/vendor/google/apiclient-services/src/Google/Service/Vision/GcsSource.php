@@ -15,16 +15,16 @@
  * the License.
  */
 
-class Google_Service_ServiceConsumerManagement_CustomAuthRequirements extends Google_Model
+class Google_Service_Vision_GcsSource extends Google_Model
 {
-  public $provider;
+  public $uri;
 
-  public function setProvider($provider)
+  public function setUri($uri)
   {
-    $this->provider = $provider;
+    $this->uri = $uri;
   }
-  public function getProvider()
+  public function getUri()
   {
-    return $this->provider;
+    return $this->uri;
   }
 }

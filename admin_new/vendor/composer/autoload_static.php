@@ -23,11 +23,16 @@ class ComposerStaticInit4d1b51bf89b958c6490739679b13be9d
             'TelegramBot\\TelegramBotManager\\' => 31,
             'TelegramBot\\InlineKeyboardPagination\\' => 37,
         ),
+        'R' => 
+        array (
+            'Retrinko\\Ini\\' => 13,
+        ),
         'P' => 
         array (
             'Psr\\Log\\' => 8,
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Cache\\' => 10,
+            'PHPMailer\\PHPMailer\\' => 20,
         ),
         'M' => 
         array (
@@ -64,6 +69,10 @@ class ComposerStaticInit4d1b51bf89b958c6490739679b13be9d
         array (
             0 => __DIR__ . '/..' . '/php-telegram-bot/inline-keyboard-pagination/src',
         ),
+        'Retrinko\\Ini\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/retrinko/ini/src',
+        ),
         'Psr\\Log\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/log/Psr/Log',
@@ -75,6 +84,10 @@ class ComposerStaticInit4d1b51bf89b958c6490739679b13be9d
         'Psr\\Cache\\' => 
         array (
             0 => __DIR__ . '/..' . '/psr/cache/src',
+        ),
+        'PHPMailer\\PHPMailer\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
         ),
         'Monolog\\' => 
         array (

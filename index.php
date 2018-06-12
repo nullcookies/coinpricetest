@@ -13,10 +13,13 @@ use unreal4u\TelegramAPI\Telegram\Types\Inline\Keyboard\Markup;
 use unreal4u\TelegramAPI\Telegram\Types\User;
 use unreal4u\TelegramAPI\TgLog;
 
-$loop       =   Factory::create();
-$tgLog      =   new TgLog(BOT_TOKEN, new HttpClientRequestHandler($loop));
+$loop           =   Factory::create();
+$tgLog          =   new TgLog(BOT_TOKEN, new HttpClientRequestHandler($loop));
 
-$sendMessage  =   new SendMessage();
+$sendMessage    =   new SendMessage();
+$checkBotStatus = parse_ini_file(__DIR__ . '/admin_new/config.ini');
+if($checkBotStatus['open_bot'] == 1) {
+
 
 $step                   =   getData('step-'.A_USER_CHAT_ID);
 $stepEmail              =   getData('change-email-step-'.A_USER_CHAT_ID);
@@ -27,6 +30,7 @@ $stepRegister           =   getData('step-register-'.A_USER_CHAT_ID);
 $stepExchange           =   getData('step-exchange-'.A_USER_CHAT_ID);
 $stepAddCoin            =   getData('step-add-coin-'.A_USER_CHAT_ID);
 $stepPassword           =   getData('change-password-step-'.A_USER_CHAT_ID);
+$stepSupport            =   getData('support-step-'.A_USER_CHAT_ID);
 //$verified            =   setData('verified-'.A_USER_CHAT_ID,'no');
 $tokenCode 				      =		getData('token-exchange-'.A_USER_CHAT_ID);
 
@@ -41,6 +45,7 @@ $tokenCode 				      =		getData('token-exchange-'.A_USER_CHAT_ID);
       setData('step-exchange-'.A_USER_CHAT_ID, '0');
       setData('step-add-coin'.A_USER_CHAT_ID, '0');
       setData('change-password-step-'.A_USER_CHAT_ID,'0');
+      setData('support-step-'.A_USER_CHAT_ID,'0');
       require_once __DIR__.'/types/nut_khoi_tao.php';
       break;
     case '/huy':
@@ -58,6 +63,7 @@ $tokenCode 				      =		getData('token-exchange-'.A_USER_CHAT_ID);
       setData('step-exchange-'.A_USER_CHAT_ID, '0');
       setData('step-add-coin'.A_USER_CHAT_ID, '0');
       setData('change-password-step-'.A_USER_CHAT_ID,'0');
+      setData('support-step-'.A_USER_CHAT_ID,'0');
       $sendMessage->chat_id = A_USER_CHAT_ID;
       $sendMessage->text = 'Cache is removed successfully !';
       break;
@@ -121,7 +127,7 @@ $tokenCode 				      =		getData('token-exchange-'.A_USER_CHAT_ID);
       updateFailed($tokenCode);
       require_once __DIR__.'/types/sua_thong_tin.php';
       break;
-    case $nutYeuCau[5]:
+    case $nutYeuCau[5]: // Đăng Ký Coin
       clearCache();
       updateFailed($tokenCode);
       if(checkNgayChiaLai() == true) {
@@ -132,6 +138,11 @@ $tokenCode 				      =		getData('token-exchange-'.A_USER_CHAT_ID);
         setData('step-add-coin-'.A_USER_CHAT_ID,'1');
         require_once __DIR__.'/types/dang_ky_coin.php';
       }
+      break;
+    case $nutYeuCau[6]:
+      clearCache();
+      setData('support-step-'.A_USER_CHAT_ID,'1');
+      require_once __DIR__.'/types/email_support.php';
       break;
     case $nutChinhSua[0]: // Đổi Password
       clearCache();
@@ -161,8 +172,9 @@ $tokenCode 				      =		getData('token-exchange-'.A_USER_CHAT_ID);
       } else {
       	if(checkStatusWallet() == true) {
 	        setData('change-wallet-step-'.A_USER_CHAT_ID,'1');
-	        $sendMessage->chat_id = A_USER_CHAT_ID;
-	        $sendMessage->text = 'Vui lòng nhập Plan bạn muốn thay đổi số ví';
+	        /*$sendMessage->chat_id = A_USER_CHAT_ID;
+	        $sendMessage->text = 'Vui lòng nhập Plan bạn muốn thay đổi số ví';*/
+          require_once __DIR__.'/types/change_wallet.php';
 	      } else {
 	        $sendMessage->chat_id = A_USER_CHAT_ID;
 	        $sendMessage->text = 'Chức năng này bị khóa tạm thời bởi người quản trị, vui lòng update lần sau.';
@@ -223,6 +235,10 @@ $tokenCode 				      =		getData('token-exchange-'.A_USER_CHAT_ID);
       }
       break;
   }
+} else {
+  $sendMessage->chat_id = A_USER_CHAT_ID;
+  $sendMessage->text = 'Bot đang bảo trì ! Vui lòng quay lại sau...';
+}
 
 $promise = $tgLog->performApiRequest($sendMessage);
 
@@ -243,7 +259,7 @@ $getQueryType       =   $arrayQueryData[0];
       $editMessageText                                =     new EditMessageText();
       $editMessageText->chat_id                       =     $queryUserId;
       $editMessageText->message_id                    =     $querymsgId;
-      $editMessageText->text                          =     "Vui lòng chọn yêu cầu cho Plan ".strtoupper($arrayQueryData[1])."\nGhi chú:\n- Chọn 'Có' để tái đầu tư\n- Chọn 'No' để rút lãi theo tuần";
+      $editMessageText->text                          =     "Vui lòng chọn yêu cầu cho Plan ".strtoupper($arrayQueryData[1])."\nGhi chú:\n- Chọn 'Có' để tái đầu tư\n- Chọn 'Không' để rút lãi theo tuần";
       $checkDaily 									  =		 checkDailyWithdraw($arrayQueryData[1]);
       if($checkDaily  == 'daily') {
       	$inlineKeyboard = new Markup([
@@ -457,6 +473,7 @@ $getQueryType       =   $arrayQueryData[0];
           $coinAdd            =   getData('coin-add-coin-'.$queryUserId);
           $txtIdAdd           =   trim(getData('txtid-add-coin-'.$queryUserId));
           $resultSend         =   sendEmailAddCoin($currentUser, $coinAdd, $planAdd, $txtIdAdd);
+          insertUserAddCoin($queryUserId, $planAdd, $coinAdd, $txtIdAdd);
           removeData('plan-add-coin-'.$queryUserId);
           removeData('coin-add-coin-'.$queryUserId);
           removeData('txtid-add-coin-'.$queryUserId);
@@ -472,6 +489,52 @@ $getQueryType       =   $arrayQueryData[0];
           removeData('coin-add-coin-'.$queryUserId);
           removeData('txtid-add-coin-'.$queryUserId);
           setData('step-add-coin-'.$queryUserId,'0');
+          break;
+      }
+      break;
+    case 'change-wallet':
+        $editMessageText                                =     new EditMessageText();
+        $editMessageText->chat_id                       =     $queryUserId;
+        $editMessageText->message_id                    =     $querymsgId;
+        $editMessageText->text                          =     'Vui lòng nhập Số ví bạn muốn thay đổi (lưu ý nếu nhập sai số ví chúng tôi sẽ không chịu trách nhiệm)';
+        $messageCorrectionPromise                       =     $tgLog->performApiRequest($editMessageText);
+        setData('plan-wallet-'.$queryUserId,$arrayQueryData[1]);
+        setData('change-wallet-step-'.$queryUserId,'3');
+    	break;
+    case 'email-support':
+        $editMessageText                                =     new EditMessageText();
+        $editMessageText->chat_id                       =     $queryUserId;
+        $editMessageText->message_id                    =     $querymsgId;
+        $editMessageText->text                          =     'Vui lòng nhập nội dung bạn muốn yêu cầu support:';
+        $messageCorrectionPromise                       =     $tgLog->performApiRequest($editMessageText);
+        setData('support-type-'.$queryUserId,$arrayQueryData[1]);
+        setData('support-step-'.$queryUserId,'3');
+    	break;
+    case 'support-confirm':
+      switch ($arrayQueryData[1]) {
+        case 'yes':
+          $editMessageText                                =     new EditMessageText();
+          $editMessageText->chat_id                       =     $queryUserId;
+          $editMessageText->message_id                    =     $querymsgId;
+          $editMessageText->text                          =     "Yêu cầu Support của bạn đã được gửi thành công, chúng tôi sẽ phản hồi yêu cầu của bạn trong thời gian sớm nhất.\nXin cám ơn !";
+          $messageCorrectionPromise                       =     $tgLog->performApiRequest($editMessageText);
+          $currentUser        		=   getCurrentUser($queryUserId);
+          $supportType 				=	getData('support-type-'.$queryUserId);
+          $supportContent 			=	getData('support-content-'.$queryUserId);
+          $resultSend         		=   sendEmailSupport($currentUser, $supportType, $supportContent);
+          removeData('support-type-'.$queryUserId);
+          removeData('support-content-'.$queryUserId);
+          setData('support-step-'.$queryUserId,'0');
+          break;
+        case 'no':
+          $editMessageText                                =     new EditMessageText();
+          $editMessageText->chat_id                       =     $queryUserId;
+          $editMessageText->message_id                    =     $querymsgId;
+          $editMessageText->text                          =     "Yêu cầu Support của bạn đã bị hủy !";
+          $messageCorrectionPromise                       =     $tgLog->performApiRequest($editMessageText);
+          removeData('support-type-'.$queryUserId);
+          removeData('support-content-'.$queryUserId);
+          setData('support-step-'.$queryUserId,'0');
           break;
       }
       break;

@@ -311,7 +311,7 @@ function answerPlanDetail($telegramId, $queryData) {
     $arrayChiaLai        = $db->query("SELECT * FROM `chialai` WHERE `username` = ':username' AND `ten_plan` = ':current_plan' ORDER BY `ngay_chia_lai` DESC LIMIT 1", ['username' => $currentUser, 'current_plan' => $currentPlan])->fetch();
 
 
-      $result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTên Đăng Ký: ".$arrayUser['ho_ten']."\nSố Coin Đào PoS: ".$arrayResult['so_dao_pos']." ".$arrayPlanCoins['ky_hieu_coin']."\nCổ Phần: ".$arrayResult['co_phan']."%\nLãi mới nhất ngày ".$arrayChiaLai['ngay_chia_lai'].": ".$arrayChiaLai['lai_coin'] . ' '.$arrayPlanCoins['ky_hieu_coin'];
+      $result         = "Thông tin plan ".(strtoupper($arrayResult['ten_plan']))." của bạn:\nTên Đăng Ký: ".$arrayUser['ho_ten']."\nBalance: ".$arrayResult['so_dao_pos']." ".$arrayPlanCoins['ky_hieu_coin']."\nCổ Phần: ".$arrayResult['co_phan']."%\nLãi mới nhất ngày ".$arrayChiaLai['ngay_chia_lai'].": ".$arrayChiaLai['lai_coin'] . ' '.$arrayPlanCoins['ky_hieu_coin'];
   }
   
 
@@ -961,8 +961,8 @@ function sendEmailAddCoin($userName, $soCoin, $tenCoin, $txtId) {
 
       $mail->isHTML(true);
 
-      $mail->Subject = "Yêu cầu thêm coin từ user: ".$userName." vào ngày ".$today;
-      $mail->Body    = "Bạn vừa nhận được yêu cầu thêm coin từ user: <b>".$userName."</b><br />Tên Plan: <b>".$tenCoin."<b/><br />Số coin yêu cầu thêm: <b>".$soCoin." ".$kyhieuCoin."</b><br />Txtid: <b>".$txtId."</b><br />Xin cám ơn !";
+      $mail->Subject = "User: ".$userName." - thêm ".$soCoin." - plan ".$tenCoin;
+      $mail->Body    = "Bạn vừa nhận được yêu cầu thêm coin vào ngày ".$today." từ user: <b>".$userName."</b><br />Tên Plan: <b>".$tenCoin."<b/><br />Số coin yêu cầu thêm: <b>".$soCoin." ".$kyhieuCoin."</b><br />Txtid: <b>".$txtId."</b><br />Xin cám ơn !";
 
       if (!$mail->send()) {
           echo 'Message could not be sent.';
@@ -977,6 +977,22 @@ function sendEmailAddCoin($userName, $soCoin, $tenCoin, $txtId) {
     return $result;
 }
 
+function insertUserAddCoin($telegramId, $tenPlan, $soCoinThem, $txtId) {
+	$result 			  =		  false;
+	$db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
+	$currentUser          =       getCurrentUser($telegramId);
+  	$userEmail            =       getUserEmail($currentUser);
+  	$today                =       date("Y-m-d H:i:s");
+  	$queryInfo    		  = 	  $db->query("SELECT `id` FROM `dangkycoin` WHERE `username` = ':username'",['username'=>$currentUser, 'ten_plan'=>$tenPlan, 'so_coin_them'=>$soCoinThem, 'txtid'=>$txtId])->fetch();
+  	if(!empty($queryInfo['id'])) {
+		$result 		  = 	  $db->update('dangkycoin',['so_coin_them'=>$soCoinThem,'txtid'=>$txtId,'email'=> $userEmail,'ngay_yeu_cau'=>$today]," id = '".$queryInfo['id']."'");
+  	} else {
+  		$result 		  =		 $db->insert('dangkycoin',['username'=>$currentUser,'ten_plan'=>$tenPlan,'so_coin_them'=>$soCoinThem, 'txtid'=>$txtId, 'email'=>$userEmail, 'ngay_yeu_cau'=>$today]);
+  	}
+  	return $result;
+	$db->close();
+}
+
 //Gửi Email Token thay đổi password
 function sendEmailChangePassword($telegramId, $password) {
   $db                   =       new Database(DB_SERVER,DB_USER,DB_PASS,DB_DATABASE);
@@ -989,7 +1005,7 @@ function sendEmailChangePassword($telegramId, $password) {
   $userFullName         =       getFullName($currentUser);
   $tokenCode            =       createRandomToken();
   $password             =       trim($password);
-  $db->update('users',['ngay_yeu_cau'=>$today,'token'=> $tokenCode]," username = '".$currentUser."'");
+  		$db->update('users',['ngay_yeu_cau'=>$today,'token'=> $tokenCode]," username = '".$currentUser."'");
   try {
       $mail->SMTPOptions = array(
       'ssl' => array(
@@ -1067,5 +1083,73 @@ function updateSendMailTimes($telegramId, $sendTimes) {
   $currentUser          =       getCurrentUser($telegramId);
   $result               =       $db->update('users',['sendmail_times'=>$sendTimes]," username = '".$currentUser."'");
   return $result;
+  $db->close();
+}
+
+// Gửi yêu cầu support
+function sendEmailSupport($currentUser, $supportType, $supportContent) {
+  $mail                 =       new PHPMailer(true);
+  $result               =       false;
+  $today                =       date("d-m-Y H:i:s");
+  $userEmail            =       getUserEmail($currentUser);
+  $userFullName         =       getFullName($currentUser);
+  try {
+      $mail->SMTPOptions = array(
+      'ssl' => array(
+          'verify_peer' => false,
+          'verify_peer_name' => false,
+          'allow_self_signed' => true
+          )
+      );
+      $mail->isSMTP();
+      $mail->Host       =   'smtp.gmail.com';  //gmail SMTP server
+      $mail->SMTPAuth   =   true;
+      $mail->Username   =   'ta.team.rb@gmail.com';   //username
+      $mail->Password   =   'lyhxxnogvslxvfaz';   //password
+      //$mail->Username = 'ngtanthanh90@gmail.com';   //username
+      //$mail->Password = 'dthjhlqsogiadfmi';   //password
+      // dthjhlqsogiadfmi
+      $mail->SMTPSecure =   'ssl';
+      $mail->Port       =   465;                    //smtp port
+      $mail->CharSet    =   'UTF-8';
+      $mail->setFrom('ta.team.rb@gmail.com', 'TeamTA Telegram Bot');
+      if(strtolower($supportType) == 'bot') {
+        $mail->addAddress('ngtanthanh90@gmail.com', 'Support: Bot - from Telegram Bot');
+        $mail->addAddress('ta.team.rb@gmail.com', 'Support: Bot - from Telegram Bot');
+      } else if(strtolower($supportType) == 'profit') {
+        $mail->addAddress('visaotrongdem@gmail.com', 'Support: Lãi - from Telegram Bot');
+        $mail->addAddress('ta.team.rb@gmail.com', 'Support: Lãi - from Telegram Bot');
+      } else if(strtolower($supportType) == 'sheet') {
+        $mail->addAddress('visaotrongdem@gmail.com', 'Support: Bảng Tính - from Telegram Bot');
+        $mail->addAddress('ta.team.rb@gmail.com', 'Support: Bảng Tính - from Telegram Bot');
+      } else if(strtolower($supportType) == 'information') {
+        $mail->addAddress('ln_phuoc@yahoo.com', 'Support: Thông Tin Plan - from Telegram Bot');
+        $mail->addAddress('ta.team.rb@gmail.com', 'Support: Thông Tin Plan - from Telegram Bot');
+      } else if(strtolower($supportType) == 'other') {
+        $mail->addAddress('hanghot00@gmail.com', 'Support: Khác - from Telegram Bot');
+        $mail->addAddress('ta.team.rb@gmail.com', 'Support: Khác - from Telegram Bot');
+      }
+      //$mail->addAddress($userEmail, $userFullName);
+
+      /*$mail->addAttachment(__DIR__ . '/attachment1.png');
+      $mail->addAttachment(__DIR__ . '/attachment2.jpg');*/
+      $mail->AddReplyTo($userEmail, $userFullName);
+      $mail->isHTML(true);
+
+      $mail->Subject = "Yêu cầu support từ user: ".$userFullName ." (".$currentUser.")";
+      $mail->Body    = "Xin chào ! <br />Bạn nhận được yêu cầu support của user: <b>".$currentUser."</b><br />Vào ngày <b>".$today."</b><br />Nội dung yêu cầu support: <b>".$supportContent."</b><br />Xin cám ơn !";
+
+      if (!$mail->send()) {
+          echo 'Message could not be sent.';
+          echo 'Mailer Error: ' . $mail->ErrorInfo;
+      } else {
+          $result   =   true;
+          $mail->ClearAllRecipients();
+      }
+  } catch (Exception $e) {
+      echo 'Message could not be sent.';
+      echo 'Mailer Error: ' . $mail->ErrorInfo;
+  }
+    return $result;
   $db->close();
 }

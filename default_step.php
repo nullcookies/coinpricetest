@@ -155,20 +155,20 @@ switch ($step) {
 	} // End Switch Step Đăng Ký
 
 	switch ($stepWallet) {
-		case '1':
+		/*case '1':
 		  setData('plan-wallet-'.A_USER_CHAT_ID,$text);
 		  $sendMessage->chat_id = A_USER_CHAT_ID;
 		  $sendMessage->text = 'Vui lòng nhập Số ví bạn muốn thay đổi (lưu ý nếu nhập sai số ví chúng tôi sẽ không chịu trách nhiệm)';
 		  setData('change-wallet-step-'.A_USER_CHAT_ID,'2');
-		  break;
-		case '2':
+		  break;*/
+		case '3':
 		  setData('wallet-'.A_USER_CHAT_ID,$text);
 		  $requestPlan    =   getData('plan-wallet-'.A_USER_CHAT_ID);
 		  $requestWallet  =   getData('wallet-'.A_USER_CHAT_ID);
 		  if(checkUserWallet($text)) {
 		    $sendMessage->chat_id = A_USER_CHAT_ID;
 		    $sendMessage->text = 'Số ví này đã được đăng ký, vui lòng nhập lại số ví !';
-		    setData('change-wallet-step-'.A_USER_CHAT_ID,'2');
+		    setData('change-wallet-step-'.A_USER_CHAT_ID,'3');
 		  } else {
 		    if(checkUserPlan(A_USER_CHAT_ID, $requestPlan)) {
 		      $sendMessage->chat_id = A_USER_CHAT_ID;
@@ -412,4 +412,41 @@ switch ($step) {
 			# code...
 			break;
 	} // Step ADD Coin
+
+	switch ($stepSupport) {
+		case '3':
+			$currentUser 				=	getCurrentUser(A_USER_CHAT_ID);
+			$supportType 				=	getData('support-type-'.A_USER_CHAT_ID);
+			setData('support-content-'.A_USER_CHAT_ID,trim($text));
+			$supportContent 			=	getData('support-content-'.A_USER_CHAT_ID);
+			$arrayInlineKeyBoard 		=	[
+											    'inline_keyboard' => [
+											        [
+											            ['text' => '✅ Xác Nhận', 'callback_data' => 'support-confirm_yes'],
+											            ['text' => '❌ Hủy', 'callback_data' => 'support-confirm_no'],
+											        ],
+											    ]
+											];	
+			$inlineKeyboard 			= 	new Markup($arrayInlineKeyBoard);
+			$sendMessage->chat_id 		= 	A_USER_CHAT_ID;
+			if($supportType == 'bot') {
+				$supportType 	=	'Telegram Bot';
+			} else if($supportType == 'profit') {
+				$supportType 	=	'Lãi';
+			} else if($supportType == 'sheet') {
+				$supportType 	=	'Bảng Tính';
+			} else if($supportType == 'information') {
+				$supportType 	=	'Thông Tin Plan';
+			} else {
+				$supportType 	=	'Khác';
+			}
+			$sendMessage->text 			= 	"Vui lòng xác nhận những thông tin sau:\nUsername: ".$currentUser."\nYêu Cầu Support: ".$supportType."\nNội dung yêu cầu: ".$supportContent."\nChọn yêu cầu dưới đây:";
+			$sendMessage->disable_web_page_preview = true;
+			$sendMessage->parse_mode 	= 	'Markdown';
+			$sendMessage->reply_markup 	= 	$inlineKeyboard;
+			break;
+		default:
+			# code...
+			break;
+	}
 ?>

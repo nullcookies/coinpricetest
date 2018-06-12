@@ -8,18 +8,18 @@
         <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Menu Levels">
           <a class="nav-link nav-link-collapse collapsed" data-toggle="collapse" href="#collapseMulti" data-parent="#exampleAccordion">
             <i class="fa fa-fw fa-table"></i>
-            <span class="nav-link-text">Tables</span>
+            <span class="nav-link-text">Bảng</span>
           </a>
-          <ul class="sidenav-second-level collapse" id="collapseMulti">
+          <ul class="sidenav-second-level" id="collapseMulti">
             <li>
+              <a href="request_add_coin.php"><i class="fa fa-fw fa-plus-circle"></i> Yêu Cầu Thêm Coin</a>
+            </li>
+            <!-- <li>
               <a href="#">Second Level Item</a>
             </li>
             <li>
               <a href="#">Second Level Item</a>
-            </li>
-            <li>
-              <a href="#">Second Level Item</a>
-            </li>
+            </li> -->
           </ul>
         </li>
         <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Charts">
@@ -55,6 +55,12 @@
           <a class="nav-link" href="change_add_coin.php">
             <i class="fa fa-fw fa-sign-in"></i>
             <span class="nav-link-text">Disable Change Add Coin</span>
+          </a>
+        </li>
+        <li class="nav-item" data-toggle="tooltip" data-placement="right" title="Link">
+          <a class="nav-link" href="stop_bot.php">
+            <i class="fa fa-fw fa-ban"></i>
+            <span class="nav-link-text">Stop Telegram Bot</span>
           </a>
         </li>
       </ul>

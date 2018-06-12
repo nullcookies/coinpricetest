@@ -33,8 +33,9 @@ $nutYeuCau 	=	array(
 		'💰 Yêu Cầu Rút Coin', 	// $nutYeuCau[1]
 		'📤 Yêu Cầu Cuối Tháng', // $nutYeuCau[2]
 		'🔁 Chuyển Coin', // $nutYeuCau[3]
-		'⚙️ Chỉnh Sửa Thông Tin',
-		'✍️ Đăng Ký Thêm Coin' // $nutYeuCau[4]
+		'⚙️ Chỉnh Sửa Thông Tin', // $nutYeuCau[4]
+		'✍️ Đăng Ký Thêm Coin', // $nutYeuCau[5]
+		'📪 Email Support', // $nutYeuCau[6]
 	);
 
 $nutChinhSua 	=	array(

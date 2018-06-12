@@ -2,9 +2,9 @@
 
 use unreal4u\TelegramAPI\Telegram\Types\Inline\Keyboard\Markup;
 $sendMessage->chat_id = A_USER_CHAT_ID;
-if(checkNgayChiaLai() == true)  {
+/*if(checkNgayChiaLai() == true)  {
 	$sendMessage->text = 'Hôm nay là ngày chia lãi, bạn vui lòng yêu cầu vào ngày khác.';
-} else {
+} else {*/
 	$sendMessage->text = 'Chọn plan bạn muốn thêm Coin: ';
 	$row = null;
 	$arrayInlineKeyBoard    =   array();
@@ -20,5 +20,5 @@ if(checkNgayChiaLai() == true)  {
 	$sendMessage->disable_web_page_preview = true;
 	$sendMessage->parse_mode = 'Markdown';
 	$sendMessage->reply_markup = $inlineKeyboard;
-	setData('step-add-coin-'.A_USER_CHAT_ID,'2');
-}
+	setData('change-wallet-step-'.A_USER_CHAT_ID,'2');
+/*}*/
